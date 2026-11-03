@@ -66,8 +66,6 @@ jobs:
       - uses: actions/setup-java@v4
         if: github.event.inputs.action != 'mark-stable'
         with: { distribution: temurin, java-version: 21 }
-      - uses: android-actions/setup-android@v3
-        if: github.event.inputs.action != 'mark-stable'
       - name: Build
         if: github.event.inputs.action != 'mark-stable'
         env:
