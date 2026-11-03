@@ -1,0 +1,6 @@
+{
+  "appId": "io.github.dromaia.mani",
+  "appName": "Mani",
+  "webDir": "www",
+  "plugins": { "CapacitorHttp": { "enabled": true } }
+}

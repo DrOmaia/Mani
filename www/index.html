@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mani</title>
+<style>
+  :root { --bg:#f4f1ea; --card:#fff; --ink:#1d1d1d; --mut:#6b6b6b; --ar:#0f766e; --rn:#b45309; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family:system-ui,"Noto Sans Arabic",sans-serif; }
+  body { display:flex; flex-direction:column; }
+  .half { flex:1; display:flex; flex-direction:column; gap:8px; padding:12px 16px; min-height:0; }
+  .rn { transform:rotate(180deg); border-bottom:2px dashed #d6cfc0; }
+  .lbl { font-size:14px; font-weight:700; }
+  .ar .lbl { color:var(--ar); } .rn .lbl { color:var(--rn); }
+  .out { flex:1; overflow:auto; background:var(--card); border-radius:14px; padding:12px;
+    font-size:24px; line-height:1.5; min-height:60px; }
+  .out:empty::before { content:attr(data-hint); color:var(--mut); font-size:16px; }
+  .row { display:flex; gap:8px; }
+  textarea { flex:1; font:inherit; font-size:18px; border:1px solid #d6cfc0; border-radius:12px;
+    padding:10px; resize:none; height:64px; background:#fff; color:var(--ink); }
+  button { border:0; border-radius:12px; font-size:22px; min-width:56px; color:#fff; cursor:pointer; }
+  .ar button { background:var(--ar); } .rn button { background:var(--rn); }
+  button.alt { background:#e7e2d6 !important; color:var(--ink); }
+  button:disabled { opacity:.5; }
+</style>
+</head>
+<body>
+  <!-- Upper half: Kirundi speaker (rotated to face her) -->
+  <section class="half rn" dir="ltr">
+    <div class="lbl">Ikirundi</div>
+    <div class="out" id="outRn" data-hint="Ubusobanuro buzoboneka hano"></div>
+    <div class="row">
+      <textarea id="inRn" placeholder="Andika hano…"></textarea>
+      <button id="goRn" aria-label="Sobanura">➜</button>
+    </div>
+  </section>
+
+  <!-- Lower half: Arabic speaker -->
+  <section class="half ar" dir="rtl">
+    <div class="lbl">العربي</div>
+    <div class="out" id="outAr" data-hint="الترجمة بتطلع هون"></div>
+    <div class="row">
+      <textarea id="inAr" placeholder="اكتبي هون…"></textarea>
+      <button id="micAr" class="alt" aria-label="تكلّمي">🎤</button>
+      <button id="goAr" aria-label="ترجمي">➜</button>
+    </div>
+    <div class="row"><button id="sayAr" class="alt" style="flex:1;font-size:16px;padding:8px">🔊 اقرأ آخر ترجمة</button></div>
+  </section>
+
+<script>
+const P = (window.Capacitor && Capacitor.Plugins) || {};
+const $ = id => document.getElementById(id);
+
+async function translate(text, from, to) {
+  const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&dt=t'
+    + '&sl=' + from + '&tl=' + to + '&q=' + encodeURIComponent(text);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(r.status);
+  const j = await r.json();
+  return j[0].map(p => p[0]).join('');
+}
+
+async function speakAr(text) {
+  if (!text) return;
+  try {
+    if (P.TextToSpeech) await P.TextToSpeech.speak({ text, lang: 'ar-SA', rate: 0.9 });
+    else speechSynthesis.speak(Object.assign(new SpeechSynthesisUtterance(text), { lang: 'ar-SA' }));
+  } catch (e) {}
+}
+
+// side: 'ar' = she wrote Arabic → Kirundi shown on top; 'rn' = Kirundi → Arabic shown below (and read aloud)
+async function go(side) {
+  const inp = $(side === 'ar' ? 'inAr' : 'inRn');
+  const text = inp.value.trim();
+  if (!text) return;
+  const own = $(side === 'ar' ? 'outAr' : 'outRn');
+  const other = $(side === 'ar' ? 'outRn' : 'outAr');
+  const btn = $(side === 'ar' ? 'goAr' : 'goRn');
+  btn.disabled = true;
+  try {
+    const res = await translate(text, side === 'ar' ? 'ar' : 'rn', side === 'ar' ? 'rn' : 'ar');
+    own.textContent = text;
+    other.textContent = res;
+    inp.value = '';
+    if (side === 'rn') speakAr(res);
+  } catch (e) {
+    own.textContent = side === 'ar' ? '⚠️ ما في إنترنت أو الترجمة ما اشتغلت، جرّبي مرة ثانية.'
+                                    : '⚠️ Nta interineti. Subira ugerageze.';
+  }
+  btn.disabled = false;
+}
+
+async function micAr() {
+  const SR = P.SpeechRecognition;
+  try {
+    if (SR) {
+      const perm = await SR.requestPermissions();
+      if (perm.speechRecognition !== 'granted') return;
+      const r = await SR.start({ language: 'ar-SA', maxResults: 1, partialResults: false, popup: true });
+      if (r && r.matches && r.matches[0]) { $('inAr').value = r.matches[0]; go('ar'); }
+    } else if (window.webkitSpeechRecognition) {
+      const rec = new webkitSpeechRecognition(); rec.lang = 'ar-SA';
+      rec.onresult = e => { $('inAr').value = e.results[0][0].transcript; go('ar'); };
+      rec.start();
+    }
+  } catch (e) {}
+}
+
+$('goAr').onclick = () => go('ar');
+$('goRn').onclick = () => go('rn');
+$('micAr').onclick = micAr;
+$('sayAr').onclick = () => speakAr($('outAr').textContent);
+</script>
+</body>
+</html>
