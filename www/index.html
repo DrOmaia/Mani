@@ -54,6 +54,10 @@
   .tile small { font-size:13px; color:var(--mut); text-align:center; }
   .dl { display:flex; align-items:center; gap:4px; font-size:14px; color:var(--mut); white-space:nowrap; }
   .dl input { width:18px; height:18px; }
+  .chips { display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
+  .chips button { background:var(--rn); font-size:15px; padding:8px 12px; white-space:nowrap; min-width:0; }
+  .tile.big span { font-size:56px; }
+  .tile b { font-size:17px; }
   .empty { color:var(--mut); text-align:center; padding:30px 0; }
 </style>
 </head>
@@ -70,6 +74,7 @@
       <button id="micSw" class="alt" aria-label="Kiswahili">🎤</button>
       <button id="goRn" aria-label="Sobanura">➜</button>
     </div>
+    <div class="chips" id="chipsRn"></div>
   </section>
 
   <!-- Lower half: Arabic speaker -->
@@ -87,6 +92,7 @@
     <button data-open="phrases">⭐ جمل</button>
     <button data-open="tasks">✅ المهام</button>
     <button data-open="pics">🧹 أعمال</button>
+    <button data-open="quick">💬 ردود</button>
     <button data-open="history">🕘 السجل</button>
     <button id="sayAr" aria-label="اقرأ">🔊</button>
     <button id="flip" aria-label="قلب الشاشة">⇅</button>
@@ -125,6 +131,13 @@ let tasks = load('tasks', []);            // [{ar, rn, done, daily}]
     save('tasks', tasks); save('day', today);
   }
 })();
+// quick replies: maid side (Kirundi, tapped on the top half) and Arabic side (her tiles)
+const CHIPS_RN = [['Yego', 'نعم'], ['Oya', 'لا'], ['Murakoze', 'شكراً'], ['Ntabwo numvise', 'ما فهمت'],
+  ['Ndarwaye', 'أنا تعبانة'], ['Ndashonje', 'أنا جوعانة'], ['Ndakeneye ubufasha', 'أحتاج مساعدة']];
+const QR_AR = [
+  ['💬', 'نعم؟ شو بدك؟'], ['🤒', 'هل إنتِ تعبانة؟'], ['🍽️', 'هل إنتِ جوعانة؟'], ['📍', 'وين الموضوع؟'],
+  ['🐢', 'عيدي الكلام ببطء لو سمحتِ'], ['🙏', 'شكراً كثير'], ['🚨', 'خطر! اطلبي المساعدة فوراً']
+];
 // picture tiles for the maid: emoji + Arabic text (she sees the Kirundi on top)
 const PICS = [
   ['🧽', 'نظّفي المطبخ'], ['🍽️', 'اغسلي الصحون'], ['👕', 'شغّلي الغسالة'], ['🧺', 'انشري الغسيل'],
@@ -226,6 +239,10 @@ function render() {
     $('pTitle').textContent = '🧹 أعمال · Imirimo';
     body.innerHTML = '<div class="grid">' + PICS.map((p, i) =>
       `<button class="tile" data-pic="${i}"><span>${p[0]}</span><small>${esc(p[1])}</small></button>`).join('') + '</div>';
+  } else if (panel === 'quick') {
+    $('pTitle').textContent = '💬 ردود · Ibisubizo';
+    body.innerHTML = '<div class="grid">' + QR_AR.map((q, i) =>
+      `<button class="tile big" data-qr="${i}"><span>${q[0]}</span><b>${esc(q[1])}</b></button>`).join('') + '</div>';
   } else if (panel === 'history') {
     $('pTitle').textContent = '🕘 السجل';
     tools.innerHTML = history.length ? '<button data-act="clearHist">مسح السجل</button>' : '';
@@ -259,10 +276,12 @@ async function sayPhrase(i) {
 }
 
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask],[data-pic]');
+  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask],[data-pic],[data-qr],[data-chip]');
   if (!b) return;
   const d = b.dataset;
   if (d.open) return openPanel(d.open);
+  if (d.qr != null) { const t = QR_AR[+d.qr][1]; closePanel(); return go('ar', t); }
+  if (d.chip != null) return go('rn', CHIPS_RN[+d.chip][0]);
   if (d.pic != null) { const ar = PICS[+d.pic][1]; closePanel(); return go('ar', ar); }
   if (d.delphr != null) { if (confirm('حذف الجملة؟')) { phrases.splice(+d.delphr, 1); save('phrases', phrases); render(); } return; }
   if (d.say != null) return sayPhrase(+d.say);
@@ -281,6 +300,7 @@ document.addEventListener('keydown', e => {
   if (e.target.id === 'newTask') addTask();
 });
 
+$('chipsRn').innerHTML = CHIPS_RN.map((c, i) => `<button data-chip="${i}">${esc(c[0])}</button>`).join('');
 $('goAr').onclick = () => go('ar');
 $('goRn').onclick = () => go('rn');
 $('micAr').onclick = () => listen('ar-SA', t => go('ar', t));
