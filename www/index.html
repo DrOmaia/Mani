@@ -70,13 +70,23 @@
   body.night { --bg:#1e2227; --card:#2a2f36; --ink:#ece8df; --mut:#a3a9b0; --line:#3b414b; --btn:#3a3f49; }
   body.night .bar button, body.night .ph button, body.night .item button, body.night .set button, body.night button.alt { background:var(--btn) !important; color:var(--ink); }
   /* text size */
-  body.fs-s { --fs:0.85; } body.fs-l { --fs:1.25; }
+  body.fs-s { --fs:0.85; } body.fs-l { --fs:1.25; } body.fs-xl { --fs:1.6; }
   .out { font-size:calc(24px * var(--fs,1)); }
   textarea { font-size:calc(18px * var(--fs,1)); }
   .item .rnT { font-size:calc(20px * var(--fs,1)); }
   .set { display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:12px; padding:14px; font-size:18px; }
   .set button { background:var(--btn); color:var(--ink); font-size:16px; padding:8px 12px; min-width:0; }
   .set button.on { background:var(--ar) !important; color:#fff !important; }
+  button.set { display:flex; align-items:center; justify-content:space-between; width:100%; background:var(--card); color:var(--ink); font-size:18px; padding:14px; border-radius:12px; min-width:0; }
+  button.set.on { outline:3px solid var(--ar); }
+  .tabs { display:flex; gap:6px; }
+  .tabs button { flex:1; background:var(--btn); color:var(--ink); font-size:15px; padding:9px 4px; min-width:0; }
+  .tabs button.on { background:var(--ar) !important; color:#fff !important; }
+  .pal { flex-direction:row; justify-content:space-between; }
+  .pal i { display:inline-block; width:26px; height:26px; border-radius:50%; margin-inline-start:6px; border:1px solid var(--line); }
+  .pal.on { outline:3px solid var(--ar); }
+  .msg { background:var(--card); border-radius:12px; padding:14px; font-size:17px; line-height:1.6; }
+  .set .lbl2 { color:var(--mut); font-size:14px; }
   .empty { color:var(--mut); text-align:center; padding:30px 0; }
 </style>
 </head>
@@ -174,6 +184,22 @@ const PICS = [
 let cache = load('cache', {});            // 'ar>rn|text' → translation, works offline next time
 if (load('flat', false)) document.body.classList.add('flat');
 if (load('night', false)) document.body.classList.add('night');
+// colour palettes: the chosen one sets the page colours (night mode keeps its dark background)
+const PALETTES = [
+  { id: 'soft', name: 'الهادي (الحالي)', ar: '#4f7f76', rn: '#a86a3c', bg: '#f7f4ee', card: '#fffdf9', ink: '#2b2a27', mut: '#6f6a62', btn: '#ece6da', line: '#e4ddd0' },
+  { id: 'blue', name: 'أزرق بحري', ar: '#2c5f8a', rn: '#b0633a', bg: '#f3f7fa', card: '#ffffff', ink: '#1f2d3a', mut: '#5d6b78', btn: '#e1ebf3', line: '#d3e0ea' },
+  { id: 'pink', name: 'وردي ناعم', ar: '#9b4f6e', rn: '#b5703f', bg: '#fbf4f4', card: '#fffdfd', ink: '#3a2a30', mut: '#7a6469', btn: '#f1e3e7', line: '#ecd9de' }
+];
+function applyPalette(id) {
+  const p = PALETTES.find(x => x.id === id) || PALETTES[0];
+  const st = document.documentElement.style;
+  st.setProperty('--ar', p.ar); st.setProperty('--rn', p.rn); st.setProperty('--bg', p.bg);
+  st.setProperty('--card', p.card); st.setProperty('--ink', p.ink); st.setProperty('--mut', p.mut);
+  st.setProperty('--btn', p.btn); st.setProperty('--line', p.line);
+  save('pal', p.id);
+}
+applyPalette(load('pal', 'soft'));
+let setTab = 'color', lastNewer = 0;
 document.body.classList.add('fs-' + load('fs', 'm'));
 
 // ---------- translation ----------
@@ -301,12 +327,22 @@ function render() {
       `<button class="tile big" data-qr="${i}"><span>${q[0]}</span><b>${esc(q[1])}</b></button>`).join('') + '</div>';
   } else if (panel === 'settings') {
     $('pTitle').textContent = '⚙️ إعدادات';
-    const night = document.body.classList.contains('night'), fs = load('fs', 'm');
-    body.innerHTML = `<div class="set"><span>🌙 الوضع الليلي</span><button data-set="night" class="${night ? 'on' : ''}">${night ? 'مفعّل' : 'عادي'}</button></div>
-      <div class="set"><span>حجم الخط</span><span>
-        <button data-fs="s" class="${fs === 's' ? 'on' : ''}">صغير</button>
-        <button data-fs="m" class="${fs === 'm' ? 'on' : ''}">وسط</button>
-        <button data-fs="l" class="${fs === 'l' ? 'on' : ''}">كبير</button></span></div>`;
+    const tabs = [['color', '🎨 ألوان'], ['text', '🔤 الخط'], ['night', '🌙 ليلي'], ['update', '🔄 تحديث']];
+    const cur = load('pal', 'soft'), fs = load('fs', 'm'), night = document.body.classList.contains('night');
+    let html = '<div class="tabs">' + tabs.map(([k, l]) => `<button data-stab="${k}" class="${setTab === k ? 'on' : ''}">${l}</button>`).join('') + '</div>';
+    if (setTab === 'color') {
+      html += PALETTES.map(p => `<button class="set pal ${cur === p.id ? 'on' : ''}" data-pal="${p.id}"><span>${p.name}</span><span><i style="background:${p.ar}"></i><i style="background:${p.rn}"></i></span></button>`).join('');
+    } else if (setTab === 'text') {
+      html += `<div class="set"><span>حجم الخط</span></div>` + [['s', 'صغير'], ['m', 'وسط'], ['l', 'كبير'], ['xl', 'كبير جداً']]
+        .map(([k, l]) => `<button class="set ${fs === k ? 'on' : ''}" data-fs="${k}"><span>${l}</span><span>${fs === k ? '✓' : ''}</span></button>`).join('');
+    } else if (setTab === 'night') {
+      html += `<button class="set" data-set="night"><span>🌙 الوضع الليلي</span><span>${night ? 'مفعّل ✓' : 'عادي'}</span></button>`;
+    } else {
+      html += `<div class="msg" id="updMsg">نسختك الحالية: ${window.MANI_VERSION ? 'v' + window.MANI_VERSION : 'تجريبية'}</div>
+        <button class="set" data-act="checkUpd"><span>🔍 افحصي التحديث</span></button>
+        <button class="set" data-act="getUpd" id="getUpd" ${lastNewer ? '' : 'hidden'}><span>⬇️ حمّلي التحديث</span></button>`;
+    }
+    body.innerHTML = html;
   } else if (panel === 'history') {
     $('pTitle').textContent = '🕘 السجل';
     tools.innerHTML = history.length ? '<button data-act="clearHist">مسح السجل</button>' : '';
@@ -348,12 +384,16 @@ async function sayPhrase(i) {
 }
 
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask],[data-pic],[data-qr],[data-chip],[data-set],[data-fs]');
+  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask],[data-pic],[data-qr],[data-chip],[data-set],[data-fs],[data-stab],[data-pal]');
   if (!b) return;
   const d = b.dataset;
   if (d.open) return openPanel(d.open);
+  if (d.stab) { setTab = d.stab; return render(); }
+  if (d.pal) { applyPalette(d.pal); return render(); }
+  if (d.act === 'checkUpd') return checkUpd();
+  if (d.act === 'getUpd') { if (P.Filesystem) return update(null); return location.href = APK_URL; }
   if (d.set === 'night') { const on = document.body.classList.toggle('night'); save('night', on); return render(); }
-  if (d.fs) { ['s', 'm', 'l'].forEach(k => document.body.classList.remove('fs-' + k)); document.body.classList.add('fs-' + d.fs); save('fs', d.fs); return render(); }
+  if (d.fs) { ['s', 'm', 'l', 'xl'].forEach(k => document.body.classList.remove('fs-' + k)); document.body.classList.add('fs-' + d.fs); save('fs', d.fs); return render(); }
   if (d.qr != null) { const t = QR_AR[+d.qr][1]; closePanel(); return go('ar', t); }
   if (d.chip != null) return go('rn', CHIPS_RN[+d.chip][0]);
   if (d.pic != null) { const ar = PICS[+d.pic][1]; closePanel(); return go('ar', ar); }
@@ -471,6 +511,20 @@ async function sharePdf() {
   } catch (e) {}
 }
 
+// settings: check for a newer version and report it
+async function checkUpd() {
+  const m = $('updMsg'); m.textContent = '⏳ عم أفحص…';
+  try {
+    const j = await (await fetch('https://api.github.com/repos/DrOmaia/Mani/releases/latest')).json();
+    const n = parseInt(String(j.tag_name || '').replace('v', ''), 10);
+    if (!n) throw new Error('no version');
+    const cur = window.MANI_VERSION || 0;
+    lastNewer = n > cur ? n : 0;
+    m.textContent = n > cur ? `في نسخة جديدة (v${n}). نسختك: ${cur ? 'v' + cur : 'تجريبية'}` : `عندك آخر نسخة ✓ (v${cur})`;
+    $('getUpd').hidden = !lastNewer;
+  } catch (e) { m.textContent = '⚠️ ما قدرت أفحص. تأكدي من الإنترنت وجرّبي مرة ثانية.'; }
+}
+
 // ---------- hardware Back button: close the open panel first ----------
 if (P.App) P.App.addListener('backButton', () => { if (panel) closePanel(); else P.App.exitApp(); });
 
@@ -488,8 +542,8 @@ const APK_URL = 'https://github.com/DrOmaia/Mani/releases/latest/download/Mani.a
 // download into the app's own cache (not Downloads), then open the installer
 async function update(ev) {
   if (!P.Filesystem || !P.FileOpener) return;   // no plugins: the link opens in the browser
-  ev.preventDefault();
-  const a = $('upd');
+  if (ev) ev.preventDefault();
+  const a = $('upd'); a.hidden = false;
   a.textContent = '⏳ عم ينزّل التحديث…';
   let f;
   try {
