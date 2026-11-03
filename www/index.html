@@ -125,7 +125,7 @@
     <button data-open="quick">💬 ردود</button>
     <button data-open="settings">⚙️</button>
     <button data-open="history">🕘 السجل</button>
-    <button id="sayAr" aria-label="اقرأ">🔊</button>
+    <button id="sayAr" aria-label="اقرأ بالبروندي">🔊</button>
     <button id="flip" aria-label="قلب الشاشة">⇅</button>
   </div>
 
@@ -424,7 +424,8 @@ $('goAr').onclick = () => go('ar');
 $('goRn').onclick = () => go('rn');
 $('micAr').onclick = () => listen('ar-SA', t => go('ar', t));
 $('micSw').onclick = () => listen('sw-TZ', t => go('sw', t));
-$('sayAr').onclick = () => speakAr($('outAr').textContent);
+// 🔊 reads the Kirundi translation (the top half) aloud, for the maid
+$('sayAr').onclick = () => speakRn($('outRn').textContent);
 $('pClose').onclick = closePanel;
 $('flip').onclick = () => save('flat', document.body.classList.toggle('flat'));
 

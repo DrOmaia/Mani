@@ -16,3 +16,4 @@
 13. New soft colours (sage green and warm clay on cream; the same idea in night mode), soft buttons, matching printed PDF.
 14. ⚙️ Settings in tabs: 🎨 colours (soft, blue, pink), 🔤 text size (small, medium, large, extra large), 🌙 night mode, 🔄 update (checks the latest version and shows the result, with a download button when there is a new one).
 15. Picture tiles show the Kirundi name under the Arabic one, so the maid can read what is pointed at.
+16. The 🔊 button now reads the Kirundi translation aloud (it used to read the Arabic one).
