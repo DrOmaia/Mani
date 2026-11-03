@@ -134,12 +134,18 @@ function load(k, d) { try { const v = JSON.parse(localStorage.getItem('mani-' + 
 function save(k, v) { try { localStorage.setItem('mani-' + k, JSON.stringify(v)); } catch (e) {} }
 
 const DEFAULT_PHRASES = [
-  'صباح الخير', 'كيف حالك؟', 'شكراً كثير', 'نظّفي المطبخ', 'حضّري الغدا', 'اغسلي الصحون',
+  'صباح الخير', 'كيف حالِك؟', 'شكراً كثير', 'نظّفي المطبخ', 'حضّري الغدا', 'اغسلي الصحون',
   'شغّلي الغسالة', 'انشري الغسيل', 'اكوي الملابس', 'رتّبي غرف النوم', 'امسحي الأرض',
   'نظّفي الحمامات', 'طلّعي الزبالة', 'الأولاد نايمين، بهدوء لو سمحتِ', 'خلّي بالك على الأولاد',
-  'شو ناقص من السوق؟', 'ارتاحي شوي', 'هل أكلتِ؟', 'هل إنتِ تعبانة؟', 'بكرا إجازتك'
+  'شو ناقص من السوق؟', 'ارتاحي شوي', 'هل أكلتِ؟', 'هل إنتِ تعبانة؟', 'بكرا إجازتِك'
 ];
 let phrases = load('phrases', DEFAULT_PHRASES.map(ar => ({ ar, rn: '' })));
+// one-time: switch the saved ready phrases to feminine address (the maid is a woman)
+const FEM = { 'كيف حالك؟': 'كيف حالِك؟', 'بكرا إجازتك': 'بكرا إجازتِك' };
+if (load('fem', 0) < 1) {
+  phrases.forEach(p => { if (FEM[p.ar]) { p.ar = FEM[p.ar]; p.rn = ''; } });
+  save('phrases', phrases); save('fem', 1);
+}
 let history = load('history', []);        // [{from:'ar'|'rn'|'sw', src, dst, at}] — kept forever
 let tasks = load('tasks', []);            // [{ar, rn, done, daily}]
 // daily tasks start unticked each new day
@@ -183,10 +189,33 @@ async function translate(text, from, to) {
   return res;
 }
 
+let arVoice = null, rnLang = null, noRnNoted = false;
+// find a female Arabic voice on the phone (voice names say "female" on most Android TTS engines)
+async function pickVoice() {
+  if (arVoice !== null || !P.TextToSpeech) return;
+  try {
+    const { voices } = await P.TextToSpeech.getSupportedVoices();
+    const ar = voices.map((v, i) => ({ v, i })).filter(x => /^ar/i.test(x.v.lang));
+    const fem = ar.find(x => /female|woman|fem/i.test(x.v.name || ''));
+    arVoice = fem ? fem.i : (ar[0] ? ar[0].i : -1);
+  } catch (e) { arVoice = -1; }
+}
+// Kirundi: use it if the phone has it; otherwise Swahili (close enough to read it aloud); otherwise say so once
+async function speakRn(text) {
+  if (!text || !P.TextToSpeech) return;
+  try {
+    if (rnLang === null) {
+      rnLang = '';
+      for (const l of ['rn', 'sw']) { const r = await P.TextToSpeech.isLanguageSupported({ lang: l }); if (r.supported) { rnLang = l; break; } }
+    }
+    if (rnLang) await P.TextToSpeech.speak({ text, lang: rnLang, rate: 0.85 });
+    else if (!noRnNoted) { noRnNoted = true; $('backAr').textContent = 'ما في صوت بروندي على هالتلفون، بتقدري تقري الترجمة مكتوبة.'; }
+  } catch (e) {}
+}
 async function speakAr(text) {
   if (!text) return;
   try {
-    if (P.TextToSpeech) await P.TextToSpeech.speak({ text, lang: 'ar-SA', rate: 0.9 });
+    if (P.TextToSpeech) { await pickVoice(); await P.TextToSpeech.speak({ text, lang: 'ar-SA', rate: 0.9, ...(arVoice >= 0 ? { voice: arVoice } : {}) }); }
     else speechSynthesis.speak(Object.assign(new SpeechSynthesisUtterance(text), { lang: 'ar-SA' }));
   } catch (e) {}
 }
@@ -208,7 +237,7 @@ async function go(from, given) {
     $('backAr').textContent = $('backRn').textContent = '';
     if (!given) inp.value = '';   // only clear the box when its own text was sent
     history.push({ from, src: text, dst: res, at: Date.now() }); save('history', history);
-    if (!isAr) speakAr(res);
+    if (!isAr) speakAr(res); else speakRn(res);   // auto: maid hears Arabic, she hears Kirundi
     // back-translation: how the other side will understand it
     try { back.textContent = (isAr ? '↩︎ يعني: ' : '↩︎ ') + await translate(res, to, from); } catch (e) {}
   } catch (e) {
