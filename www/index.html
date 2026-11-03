@@ -5,36 +5,63 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Mani</title>
 <style>
-  :root { --bg:#f4f1ea; --card:#fff; --ink:#1d1d1d; --mut:#6b6b6b; --ar:#0f766e; --rn:#b45309; }
+  :root { --bg:#f4f1ea; --card:#fff; --ink:#1d1d1d; --mut:#6b6b6b; --ar:#0f766e; --rn:#b45309; --line:#d6cfc0; }
   * { box-sizing:border-box; }
   html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
     font-family:system-ui,"Noto Sans Arabic",sans-serif; }
   body { display:flex; flex-direction:column; }
-  .half { flex:1; display:flex; flex-direction:column; gap:8px; padding:12px 16px; min-height:0; }
-  .rn { transform:rotate(180deg); border-bottom:2px dashed #d6cfc0; }
+  .half { flex:1; display:flex; flex-direction:column; gap:8px; padding:10px 16px; min-height:0; }
+  .rn { transform:rotate(180deg); border-bottom:2px dashed var(--line); }
+  body.flat .rn { transform:none; }
   .lbl { font-size:14px; font-weight:700; }
   .ar .lbl { color:var(--ar); } .rn .lbl { color:var(--rn); }
   .out { flex:1; overflow:auto; background:var(--card); border-radius:14px; padding:12px;
     font-size:24px; line-height:1.5; min-height:60px; }
   .out:empty::before { content:attr(data-hint); color:var(--mut); font-size:16px; }
+  .back { font-size:14px; color:var(--mut); min-height:1em; }
   .row { display:flex; gap:8px; }
-  textarea { flex:1; font:inherit; font-size:18px; border:1px solid #d6cfc0; border-radius:12px;
-    padding:10px; resize:none; height:64px; background:#fff; color:var(--ink); }
-  button { border:0; border-radius:12px; font-size:22px; min-width:56px; color:#fff; cursor:pointer; }
+  textarea { flex:1; font:inherit; font-size:18px; border:1px solid var(--line); border-radius:12px;
+    padding:10px; resize:none; height:60px; background:#fff; color:var(--ink); }
+  button { border:0; border-radius:12px; font-size:22px; min-width:52px; color:#fff; cursor:pointer; font-family:inherit; }
   .ar button { background:var(--ar); } .rn button { background:var(--rn); }
   button.alt { background:#e7e2d6 !important; color:var(--ink); }
   button:disabled { opacity:.5; }
+  .bar { display:flex; gap:6px; padding:0 16px 10px; }
+  .bar button { flex:1; background:#e7e2d6; color:var(--ink); font-size:15px; padding:9px 4px; min-width:0; }
+  #upd { display:block; background:var(--ar); color:#fff; text-align:center; padding:10px; font-size:16px; text-decoration:none; }
+  #upd[hidden] { display:none; }
+  /* panels */
+  #panel { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; z-index:5; }
+  #panel[hidden] { display:none; }
+  .ph { display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .ph h2 { flex:1; margin:0; font-size:20px; }
+  .ph button { background:#e7e2d6; color:var(--ink); font-size:16px; padding:8px 12px; }
+  .pb { flex:1; overflow:auto; padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
+  .item { background:var(--card); border-radius:12px; padding:12px; display:flex; gap:10px; align-items:center; }
+  .item .t { flex:1; min-width:0; overflow-wrap:anywhere; }
+  .item .rnT { font-size:20px; direction:ltr; text-align:left; }
+  .item .arT { font-size:15px; color:var(--mut); }
+  .item button { background:#e7e2d6; color:var(--ink); font-size:16px; min-width:40px; padding:6px; }
+  .item.done .t { text-decoration:line-through; opacity:.55; }
+  .item button.chk { width:36px; height:36px; min-width:36px; border-radius:50%; border:2px solid var(--rn); background:#fff; font-size:20px; color:var(--rn); padding:0; }
+  .phr { cursor:pointer; }
+  .pf { display:flex; gap:8px; padding:10px 16px; border-top:1px solid var(--line); }
+  .pf input { flex:1; min-width:0; font:inherit; font-size:17px; padding:10px; border:1px solid var(--line); border-radius:12px; }
+  .pf button { background:var(--ar); padding:0 14px; font-size:16px; }
+  .empty { color:var(--mut); text-align:center; padding:30px 0; }
 </style>
 </head>
 <body>
-  <a id="upd" hidden href="https://github.com/DrOmaia/Mani/releases/latest/download/Mani.apk" onclick="update(event)"
-     style="display:block;background:#0f766e;color:#fff;text-align:center;padding:10px;font-size:16px;text-decoration:none" dir="rtl">⬇️ في نسخة جديدة من التطبيق، اضغطي للتحديث</a>
-  <!-- Upper half: Kirundi speaker (rotated to face her) -->
+  <a id="upd" hidden dir="rtl" href="https://github.com/DrOmaia/Mani/releases/latest/download/Mani.apk" onclick="update(event)">⬇️ في نسخة جديدة من التطبيق، اضغطي للتحديث</a>
+
+  <!-- Upper half: Kirundi speaker (rotated to face her, unless "flat") -->
   <section class="half rn" dir="ltr">
     <div class="lbl">Ikirundi</div>
     <div class="out" id="outRn" data-hint="Ubusobanuro buzoboneka hano"></div>
+    <div class="back" id="backRn"></div>
     <div class="row">
       <textarea id="inRn" placeholder="Andika hano…"></textarea>
+      <button id="micSw" class="alt" aria-label="Kiswahili">🎤</button>
       <button id="goRn" aria-label="Sobanura">➜</button>
     </div>
   </section>
@@ -43,51 +70,61 @@
   <section class="half ar" dir="rtl">
     <div class="lbl">العربي</div>
     <div class="out" id="outAr" data-hint="الترجمة بتطلع هون"></div>
+    <div class="back" id="backAr"></div>
     <div class="row">
       <textarea id="inAr" placeholder="اكتبي هون…"></textarea>
       <button id="micAr" class="alt" aria-label="تكلّمي">🎤</button>
       <button id="goAr" aria-label="ترجمي">➜</button>
     </div>
-    <div class="row"><button id="sayAr" class="alt" style="flex:1;font-size:16px;padding:8px">🔊 اقرأ آخر ترجمة</button></div>
   </section>
+  <div class="bar" dir="rtl">
+    <button data-open="phrases">⭐ جمل</button>
+    <button data-open="tasks">✅ المهام</button>
+    <button data-open="history">🕘 السجل</button>
+    <button id="sayAr" aria-label="اقرأ">🔊</button>
+    <button id="flip" aria-label="قلب الشاشة">⇅</button>
+  </div>
+
+  <div id="panel" hidden dir="rtl">
+    <div class="ph"><h2 id="pTitle"></h2><span id="pTools"></span><button id="pClose">✕</button></div>
+    <div class="pb" id="pBody"></div>
+    <div class="pf" id="pFoot"></div>
+  </div>
 
 <script src="version.js"></script>
 <script>
-// update check: compare the installed build number with the latest GitHub release (vN)
-const APK_URL = 'https://github.com/DrOmaia/Mani/releases/latest/download/Mani.apk';
-(async () => {
-  const P0 = (window.Capacitor && Capacitor.Plugins) || {};
-  // the update file of the last update is not needed once the app has started again: remove it
-  try { if (P0.Filesystem) await P0.Filesystem.deleteFile({ path: 'Mani.apk', directory: 'CACHE' }); } catch (e) {}
-  try {
-    const r = await fetch('https://api.github.com/repos/DrOmaia/Mani/releases/latest');
-    const n = parseInt(((await r.json()).tag_name || '').replace('v', ''), 10);
-    if (window.MANI_VERSION && n > window.MANI_VERSION) document.getElementById('upd').hidden = false;
-  } catch (e) {}
-})();
-// download into the app's own cache (not Downloads), then open the installer
-async function update(ev) {
-  const P0 = (window.Capacitor && Capacitor.Plugins) || {};
-  if (!P0.Filesystem || !P0.FileOpener) return;   // no plugins: the link opens in the browser
-  ev.preventDefault();
-  const a = document.getElementById('upd');
-  a.textContent = '⏳ عم ينزّل التحديث…';
-  try {
-    const f = await P0.Filesystem.downloadFile({ url: APK_URL, path: 'Mani.apk', directory: 'CACHE' });
-    await P0.FileOpener.open({ filePath: f.path, contentType: 'application/vnd.android.package-archive' });
-    a.textContent = '⬇️ في نسخة جديدة من التطبيق، اضغطي للتحديث';
-  } catch (e) { a.textContent = '⚠️ التحديث ما نزل، اضغطي لتجرّبي مرة ثانية'; }
-}
 const P = (window.Capacitor && Capacitor.Plugins) || {};
 const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// ---------- storage (every read / write guarded) ----------
+function load(k, d) { try { const v = JSON.parse(localStorage.getItem('mani-' + k)); return v == null ? d : v; } catch (e) { return d; } }
+function save(k, v) { try { localStorage.setItem('mani-' + k, JSON.stringify(v)); } catch (e) {} }
+
+const DEFAULT_PHRASES = [
+  'صباح الخير', 'كيف حالك؟', 'شكراً كثير', 'نظّفي المطبخ', 'حضّري الغدا', 'اغسلي الصحون',
+  'شغّلي الغسالة', 'انشري الغسيل', 'اكوي الملابس', 'رتّبي غرف النوم', 'امسحي الأرض',
+  'نظّفي الحمامات', 'طلّعي الزبالة', 'الأولاد نايمين، بهدوء لو سمحتِ', 'خلّي بالك على الأولاد',
+  'شو ناقص من السوق؟', 'ارتاحي شوي', 'هل أكلتِ؟', 'هل إنتِ تعبانة؟', 'بكرا إجازتك'
+];
+let phrases = load('phrases', DEFAULT_PHRASES.map(ar => ({ ar, rn: '' })));
+let history = load('history', []);        // [{from:'ar'|'rn'|'sw', src, dst, at}] — kept forever
+let tasks = load('tasks', []);            // [{ar, rn, done}]
+let cache = load('cache', {});            // 'ar>rn|text' → translation, works offline next time
+if (load('flat', false)) document.body.classList.add('flat');
+
+// ---------- translation ----------
 async function translate(text, from, to) {
+  const k = from + '>' + to + '|' + text;
+  if (cache[k]) return cache[k];
   const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&dt=t'
     + '&sl=' + from + '&tl=' + to + '&q=' + encodeURIComponent(text);
   const r = await fetch(url);
   if (!r.ok) throw new Error(r.status);
   const j = await r.json();
-  return j[0].map(p => p[0]).join('');
+  const res = j[0].map(p => p[0]).join('');
+  cache[k] = res; save('cache', cache);
+  return res;
 }
 
 async function speakAr(text) {
@@ -98,48 +135,154 @@ async function speakAr(text) {
   } catch (e) {}
 }
 
-// side: 'ar' = she wrote Arabic → Kirundi shown on top; 'rn' = Kirundi → Arabic shown below (and read aloud)
-async function go(side) {
-  const inp = $(side === 'ar' ? 'inAr' : 'inRn');
-  const text = inp.value.trim();
-  if (!text) return;
-  const own = $(side === 'ar' ? 'outAr' : 'outRn');
-  const other = $(side === 'ar' ? 'outRn' : 'outAr');
-  const btn = $(side === 'ar' ? 'goAr' : 'goRn');
-  btn.disabled = true;
+let busy = false;
+// from: 'ar' (she wrote / spoke Arabic) · 'rn' (maid wrote Kirundi) · 'sw' (maid spoke Swahili)
+async function go(from, given) {
+  const isAr = from === 'ar';
+  const inp = $(isAr ? 'inAr' : 'inRn');
+  const text = (given || inp.value).trim();
+  if (!text || busy) return;
+  busy = true; $('goAr').disabled = $('goRn').disabled = true;
+  const own = $(isAr ? 'outAr' : 'outRn'), other = $(isAr ? 'outRn' : 'outAr');
+  const back = $(isAr ? 'backAr' : 'backRn');
+  const to = isAr ? 'rn' : 'ar';
   try {
-    const res = await translate(text, side === 'ar' ? 'ar' : 'rn', side === 'ar' ? 'rn' : 'ar');
-    own.textContent = text;
-    other.textContent = res;
+    const res = await translate(text, from, to);
+    own.textContent = text; other.textContent = res;
+    $('backAr').textContent = $('backRn').textContent = '';
     inp.value = '';
-    if (side === 'rn') speakAr(res);
+    history.push({ from, src: text, dst: res, at: Date.now() }); save('history', history);
+    if (!isAr) speakAr(res);
+    // back-translation: how the other side will understand it
+    try { back.textContent = (isAr ? '↩︎ يعني: ' : '↩︎ ') + await translate(res, to, from); } catch (e) {}
   } catch (e) {
-    own.textContent = side === 'ar' ? '⚠️ ما في إنترنت أو الترجمة ما اشتغلت، جرّبي مرة ثانية.'
-                                    : '⚠️ Nta interineti. Subira ugerageze.';
+    own.textContent = isAr ? '⚠️ ما في إنترنت أو الترجمة ما اشتغلت، جرّبي مرة ثانية.'
+                           : '⚠️ Nta interineti. Subira ugerageze.';
   }
-  btn.disabled = false;
+  busy = false; $('goAr').disabled = $('goRn').disabled = false;
 }
 
-async function micAr() {
+async function listen(lang, cb) {
   const SR = P.SpeechRecognition;
   try {
     if (SR) {
       const perm = await SR.requestPermissions();
       if (perm.speechRecognition !== 'granted') return;
-      const r = await SR.start({ language: 'ar-SA', maxResults: 1, partialResults: false, popup: true });
-      if (r && r.matches && r.matches[0]) { $('inAr').value = r.matches[0]; go('ar'); }
+      const r = await SR.start({ language: lang, maxResults: 1, partialResults: false, popup: true });
+      if (r && r.matches && r.matches[0]) cb(r.matches[0]);
     } else if (window.webkitSpeechRecognition) {
-      const rec = new webkitSpeechRecognition(); rec.lang = 'ar-SA';
-      rec.onresult = e => { $('inAr').value = e.results[0][0].transcript; go('ar'); };
+      const rec = new webkitSpeechRecognition(); rec.lang = lang;
+      rec.onresult = e => cb(e.results[0][0].transcript);
       rec.start();
     }
   } catch (e) {}
 }
 
+// ---------- panels ----------
+let panel = '';
+function openPanel(name) { panel = name; $('panel').hidden = false; render(); }
+function closePanel() { panel = ''; $('panel').hidden = true; }
+
+function render() {
+  const body = $('pBody'), foot = $('pFoot'), tools = $('pTools');
+  tools.innerHTML = ''; foot.innerHTML = '';
+  if (panel === 'phrases') {
+    $('pTitle').textContent = '⭐ جمل جاهزة';
+    body.innerHTML = phrases.map((p, i) => `<div class="item phr" data-say="${i}"><div class="t">
+      <div>${esc(p.ar)}</div>${p.rn ? `<div class="arT" dir="ltr">${esc(p.rn)}</div>` : ''}</div>
+      <button data-delphr="${i}" aria-label="حذف">🗑</button></div>`).join('') || '<div class="empty">ما في جمل</div>';
+    foot.innerHTML = '<input id="newPhr" placeholder="جملة جديدة…"><button data-act="addPhr">إضافة</button>';
+  } else if (panel === 'tasks') {
+    $('pTitle').textContent = '✅ المهام · Ibikorwa';
+    tools.innerHTML = tasks.some(t => t.done) ? '<button data-act="clearDone">مسح المنجز</button>' : '';
+    body.innerHTML = tasks.map((t, i) => `<div class="item${t.done ? ' done' : ''}">
+      <button class="chk" data-tick="${i}">${t.done ? '✓' : ''}</button>
+      <div class="t"><div class="rnT">${esc(t.rn || '…')}</div><div class="arT">${esc(t.ar)}</div></div>
+      <button data-deltask="${i}" aria-label="حذف">🗑</button></div>`).join('') || '<div class="empty">ما في مهام · Nta bikorwa</div>';
+    foot.innerHTML = '<input id="newTask" placeholder="مهمة جديدة…"><button data-act="addTask">إضافة</button>';
+  } else if (panel === 'history') {
+    $('pTitle').textContent = '🕘 السجل';
+    tools.innerHTML = history.length ? '<button data-act="clearHist">مسح السجل</button>' : '';
+    body.innerHTML = history.slice().reverse().map(h => {
+      const d = new Date(h.at);
+      const when = d.toLocaleDateString('ar') + ' ' + d.toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' });
+      const ar = h.from === 'ar' ? h.src : h.dst, rn = h.from === 'ar' ? h.dst : h.src;
+      return `<div class="item"><div class="t"><div>${h.from === 'ar' ? '🙋‍♀️' : '🧹'} ${esc(ar)}</div>
+        <div class="arT" dir="ltr">${esc(rn)}</div><div class="arT" style="font-size:12px">${when}</div></div></div>`;
+    }).join('') || '<div class="empty">السجل فاضي</div>';
+  }
+}
+
+async function addPhrase() {
+  const ar = $('newPhr').value.trim(); if (!ar) return;
+  const p = { ar, rn: '' };
+  phrases.push(p); save('phrases', phrases); render();
+  try { p.rn = await translate(ar, 'ar', 'rn'); save('phrases', phrases); render(); } catch (e) {}
+}
+async function addTask() {
+  const ar = $('newTask').value.trim(); if (!ar) return;
+  const t = { ar, rn: '', done: false };
+  tasks.push(t); save('tasks', tasks); render();
+  try { t.rn = await translate(ar, 'ar', 'rn'); save('tasks', tasks); render(); } catch (e) {}
+}
+async function sayPhrase(i) {
+  const p = phrases[i]; closePanel();
+  await go('ar', p.ar);
+  const rn = cache['ar>rn|' + p.ar];
+  if (rn && !p.rn) { p.rn = rn; save('phrases', phrases); }
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask]');
+  if (!b) return;
+  const d = b.dataset;
+  if (d.open) return openPanel(d.open);
+  if (d.delphr != null) { if (confirm('حذف الجملة؟')) { phrases.splice(+d.delphr, 1); save('phrases', phrases); render(); } return; }
+  if (d.say != null) return sayPhrase(+d.say);
+  if (d.tick != null) { tasks[+d.tick].done = !tasks[+d.tick].done; save('tasks', tasks); return render(); }
+  if (d.deltask != null) { tasks.splice(+d.deltask, 1); save('tasks', tasks); return render(); }
+  if (d.act === 'addPhr') return addPhrase();
+  if (d.act === 'addTask') return addTask();
+  if (d.act === 'clearDone') { tasks = tasks.filter(t => !t.done); save('tasks', tasks); return render(); }
+  if (d.act === 'clearHist') { if (confirm('مسح كل السجل؟')) { history = []; save('history', history); render(); } }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (e.target.id === 'newPhr') addPhrase();
+  if (e.target.id === 'newTask') addTask();
+});
+
 $('goAr').onclick = () => go('ar');
 $('goRn').onclick = () => go('rn');
-$('micAr').onclick = micAr;
+$('micAr').onclick = () => listen('ar-SA', t => go('ar', t));
+$('micSw').onclick = () => listen('sw-TZ', t => go('sw', t));
 $('sayAr').onclick = () => speakAr($('outAr').textContent);
+$('pClose').onclick = closePanel;
+$('flip').onclick = () => save('flat', document.body.classList.toggle('flat'));
+
+// ---------- updates ----------
+const APK_URL = 'https://github.com/DrOmaia/Mani/releases/latest/download/Mani.apk';
+(async () => {
+  // the update file of the last update is not needed once the app has started again: remove it
+  try { if (P.Filesystem) await P.Filesystem.deleteFile({ path: 'Mani.apk', directory: 'CACHE' }); } catch (e) {}
+  try {
+    const r = await fetch('https://api.github.com/repos/DrOmaia/Mani/releases/latest');
+    const n = parseInt(((await r.json()).tag_name || '').replace('v', ''), 10);
+    if (window.MANI_VERSION && n > window.MANI_VERSION) $('upd').hidden = false;
+  } catch (e) {}
+})();
+// download into the app's own cache (not Downloads), then open the installer
+async function update(ev) {
+  if (!P.Filesystem || !P.FileOpener) return;   // no plugins: the link opens in the browser
+  ev.preventDefault();
+  const a = $('upd');
+  a.textContent = '⏳ عم ينزّل التحديث…';
+  try {
+    const f = await P.Filesystem.downloadFile({ url: APK_URL, path: 'Mani.apk', directory: 'CACHE' });
+    await P.FileOpener.open({ filePath: f.path, contentType: 'application/vnd.android.package-archive' });
+    a.textContent = '⬇️ في نسخة جديدة من التطبيق، اضغطي للتحديث';
+  } catch (e) { a.textContent = '⚠️ التحديث ما نزل، اضغطي لتجرّبي مرة ثانية'; }
+}
 </script>
 </body>
 </html>
