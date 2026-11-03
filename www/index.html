@@ -194,7 +194,8 @@ function render() {
     foot.innerHTML = '<input id="newPhr" placeholder="جملة جديدة…"><button data-act="addPhr">إضافة</button>';
   } else if (panel === 'tasks') {
     $('pTitle').textContent = '✅ المهام · Ibikorwa';
-    tools.innerHTML = tasks.some(t => t.done) ? '<button data-act="clearDone">مسح المنجز</button>' : '';
+    tools.innerHTML = (tasks.length ? '<button data-act="shareText">📤 نص</button> <button data-act="sharePdf">📄 PDF</button> ' : '')
+      + (tasks.some(t => t.done) ? '<button data-act="clearDone">مسح المنجز</button>' : '');
     body.innerHTML = tasks.map((t, i) => `<div class="item${t.done ? ' done' : ''}">
       <button class="chk" data-tick="${i}">${t.done ? '✓' : ''}</button>
       <div class="t"><div class="rnT">${esc(t.rn || '…')}</div><div class="arT">${esc(t.ar)}</div></div>
@@ -243,6 +244,8 @@ document.addEventListener('click', e => {
   if (d.deltask != null) { tasks.splice(+d.deltask, 1); save('tasks', tasks); return render(); }
   if (d.act === 'addPhr') return addPhrase();
   if (d.act === 'addTask') return addTask();
+  if (d.act === 'shareText') return shareText();
+  if (d.act === 'sharePdf') return sharePdf();
   if (d.act === 'clearDone') { tasks = tasks.filter(t => !t.done); save('tasks', tasks); return render(); }
   if (d.act === 'clearHist') { if (confirm('مسح كل السجل؟')) { history = []; save('history', history); render(); } }
 });
@@ -259,6 +262,94 @@ $('micSw').onclick = () => listen('sw-TZ', t => go('sw', t));
 $('sayAr').onclick = () => speakAr($('outAr').textContent);
 $('pClose').onclick = closePanel;
 $('flip').onclick = () => save('flat', document.body.classList.toggle('flat'));
+
+// ---------- share the tasks: text (WhatsApp…) or PDF (to print) ----------
+const today = () => new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long' });
+function shareText() {
+  const text = '✅ المهام · Ibikorwa — ' + today() + '\n\n'
+    + tasks.map(t => (t.done ? '☑ ' : '☐ ') + (t.rn || '') + '\n    ' + t.ar).join('\n\n');
+  if (P.Share) P.Share.share({ text }).catch(() => {});
+  else location.href = 'https://wa.me/?text=' + encodeURIComponent(text);
+}
+
+// one A4 page = one canvas (150 dpi); Arabic shaping is done by the browser
+function pages() {
+  const W = 1240, H = 1754, M = 90, out = [];
+  let c, g, y;
+  const page = () => {
+    c = document.createElement('canvas'); c.width = W; c.height = H; g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#1d1d1d'; y = M; out.push(c);
+  };
+  const wrap = (text, font, max) => {
+    g.font = font; const words = String(text).split(' '), lines = []; let l = '';
+    for (const w of words) { const t = l ? l + ' ' + w : w; if (g.measureText(t).width > max && l) { lines.push(l); l = w; } else l = t; }
+    if (l) lines.push(l); return lines;
+  };
+  page();
+  g.direction = 'rtl'; g.textAlign = 'right'; g.font = 'bold 54px sans-serif';
+  g.fillText('المهام · Ibikorwa', W - M, y + 50);
+  g.font = '34px sans-serif'; g.fillStyle = '#6b6b6b'; g.fillText(today(), W - M, y + 110); g.fillStyle = '#1d1d1d';
+  y += 170;
+  for (const t of tasks) {
+    const rn = wrap(t.rn || '', '44px sans-serif', W - 2 * M - 90);
+    const ar = wrap(t.ar, '32px sans-serif', W - 2 * M - 90);
+    const h = rn.length * 58 + ar.length * 44 + 40;
+    if (y + h > H - M) page();
+    g.lineWidth = 4; g.strokeStyle = '#b45309'; g.strokeRect(M, y + 8, 50, 50);
+    if (t.done) { g.direction = 'ltr'; g.textAlign = 'left'; g.font = 'bold 44px sans-serif'; g.fillStyle = '#b45309'; g.fillText('✓', M + 8, y + 50); g.fillStyle = '#1d1d1d'; }
+    g.direction = 'ltr'; g.textAlign = 'left'; g.font = '44px sans-serif';
+    rn.forEach(l => { y += 58; g.fillText(l, M + 90, y); });
+    g.direction = 'rtl'; g.textAlign = 'right'; g.font = '32px sans-serif'; g.fillStyle = '#6b6b6b';
+    ar.forEach(l => { y += 44; g.fillText(l, W - M, y); });
+    g.fillStyle = '#1d1d1d'; y += 22;
+    g.strokeStyle = '#e7e2d6'; g.lineWidth = 2; g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); y += 18;
+  }
+  return out;
+}
+
+// minimal PDF: each page is one JPEG image (no library needed)
+function pdfBase64(canvases) {
+  const enc = s => Array.from(s, ch => ch.charCodeAt(0) & 255);
+  const parts = [], offs = []; let len = 0;
+  const add = a => { parts.push(a); len += a.length; };
+  const obj = (n, head, stream) => {
+    offs[n] = len;
+    add(enc(n + ' 0 obj\n' + head + (stream ? '\nstream\n' : '\nendobj\n')));
+    if (stream) { add(stream); add(enc('\nendstream\nendobj\n')); }
+  };
+  add(enc('%PDF-1.4\n'));
+  const n = canvases.length, kids = [];
+  for (let i = 0; i < n; i++) kids.push((3 + i * 3) + ' 0 R');
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, '<< /Type /Pages /Count ' + n + ' /Kids [' + kids.join(' ') + '] >>');
+  canvases.forEach((c, i) => {
+    const p = 3 + i * 3;
+    const jpg = enc(atob(c.toDataURL('image/jpeg', 0.85).split(',')[1]));
+    const draw = enc('q 595 0 0 842 0 0 cm /Im0 Do Q');
+    obj(p, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 ' + (p + 1) + ' 0 R >> >> /Contents ' + (p + 2) + ' 0 R >>');
+    obj(p + 1, '<< /Type /XObject /Subtype /Image /Width ' + c.width + ' /Height ' + c.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpg.length + ' >>', jpg);
+    obj(p + 2, '<< /Length ' + draw.length + ' >>', draw);
+  });
+  const count = 3 + n * 3, xref = len;
+  let x = 'xref\n0 ' + count + '\n0000000000 65535 f \n';
+  for (let i = 1; i < count; i++) x += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+  add(enc(x + 'trailer\n<< /Size ' + count + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF'));
+  const all = new Uint8Array(len); let o = 0; parts.forEach(a => { all.set(a, o); o += a.length; });
+  let bin = ''; for (let i = 0; i < all.length; i += 8192) bin += String.fromCharCode.apply(null, all.subarray(i, i + 8192));
+  return btoa(bin);
+}
+
+async function sharePdf() {
+  const b64 = pdfBase64(pages());
+  try {
+    if (P.Filesystem && P.Share) {
+      const f = await P.Filesystem.writeFile({ path: 'Mani-tasks.pdf', data: b64, directory: 'CACHE' });
+      await P.Share.share({ title: 'Mani-tasks.pdf', files: [f.uri] });
+    } else {
+      const a = document.createElement('a'); a.href = 'data:application/pdf;base64,' + b64; a.download = 'Mani-tasks.pdf'; a.click();
+    }
+  } catch (e) {}
+}
 
 // ---------- updates ----------
 const APK_URL = 'https://github.com/DrOmaia/Mani/releases/latest/download/Mani.apk';
