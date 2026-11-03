@@ -7,7 +7,11 @@
 <style>
   :root { --bg:#f4f1ea; --card:#fff; --ink:#1d1d1d; --mut:#6b6b6b; --ar:#0f766e; --rn:#b45309; --line:#d6cfc0; }
   * { box-sizing:border-box; }
+  /* keep everything clear of the phone's status bar (top) and navigation bar (bottom) */
+  :root { --sat: max(env(safe-area-inset-top, 0px), 28px); --sab: max(env(safe-area-inset-bottom, 0px), 24px);
+    --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px); }
   html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+    padding:var(--sat) var(--sar) var(--sab) var(--sal);
     font-family:system-ui,"Noto Sans Arabic",sans-serif; }
   body { display:flex; flex-direction:column; }
   .half { flex:1; display:flex; flex-direction:column; gap:8px; padding:10px 16px; min-height:0; }
@@ -31,7 +35,8 @@
   #upd { display:block; background:var(--ar); color:#fff; text-align:center; padding:10px; font-size:16px; text-decoration:none; }
   #upd[hidden] { display:none; }
   /* panels */
-  #panel { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; z-index:5; }
+  #panel { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; z-index:5;
+    padding:var(--sat) var(--sar) var(--sab) var(--sal); }
   #panel[hidden] { display:none; }
   .ph { display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); }
   .ph h2 { flex:1; margin:0; font-size:20px; }

@@ -10,3 +10,4 @@
 7. Quick replies: maid chips on her half (Yego, Oya, Murakoze, Ntabwo numvise, sick, hungry, need help) and 💬 ردود panel for her (sick?, hungry?, where?, slow down, danger).
 8. ⚙️ Settings: night mode and text size (small / medium / large), kept on the phone.
 9. Picture tiles now use simple SVG drawings (drawn in the app, no internet needed) instead of emoji.
+10. Layout clears the phone's status bar (top) and navigation bar (bottom), on the main screen and in every panel.
