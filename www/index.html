@@ -27,6 +27,8 @@
 </style>
 </head>
 <body>
+  <a id="upd" hidden href="https://github.com/DrOmaia/mani/releases/latest/download/Mani.apk"
+     style="display:block;background:#0f766e;color:#fff;text-align:center;padding:10px;font-size:16px;text-decoration:none" dir="rtl">⬇️ في نسخة جديدة من التطبيق، اضغطي للتحديث</a>
   <!-- Upper half: Kirundi speaker (rotated to face her) -->
   <section class="half rn" dir="ltr">
     <div class="lbl">Ikirundi</div>
@@ -49,7 +51,16 @@
     <div class="row"><button id="sayAr" class="alt" style="flex:1;font-size:16px;padding:8px">🔊 اقرأ آخر ترجمة</button></div>
   </section>
 
+<script src="version.js"></script>
 <script>
+// update check: compare the installed build number with the latest GitHub release (vN)
+(async () => {
+  try {
+    const r = await fetch('https://api.github.com/repos/DrOmaia/mani/releases/latest');
+    const n = parseInt(((await r.json()).tag_name || '').replace('v', ''), 10);
+    if (window.MANI_VERSION && n > window.MANI_VERSION) document.getElementById('upd').hidden = false;
+  } catch (e) {}
+})();
 const P = (window.Capacitor && Capacitor.Plugins) || {};
 const $ = id => document.getElementById(id);
 

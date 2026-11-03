@@ -1,31 +1,99 @@
 name: Build APK
+
 on:
   push:
     branches: [main]
+  # Actions → Build APK → Run workflow: build again, mark a version as stable, or go back to the stable version
   workflow_dispatch:
+    inputs:
+      action:
+        description: "build | mark-stable (mark a tested version) | restore-stable (go back to the stable version)"
+        type: choice
+        options: [build, mark-stable, restore-stable]
+        default: build
+      version:
+        description: "For mark-stable: the version number (e.g. 3). Empty = the latest."
+        required: false
+        default: ""
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      # STABLE holds the tag (vN) of the last version the owner tested and approved
+      - name: Mark stable
+        if: github.event.inputs.action == 'mark-stable'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          TAG="v${VERSION#v}"
+          [ -n "$VERSION" ] || TAG=$(gh release view --json tagName -q .tagName)
+          git fetch --tags -f origin
+          git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || { echo "::error::No version $TAG"; exit 1; }
+          echo "$TAG" > STABLE
+          git add STABLE
+          git diff --cached --quiet || { git commit -m "Mark $TAG as the stable version [skip ci]"; git push origin HEAD:main; }
+          echo "::notice::$TAG is now the stable version"
+      - name: Restore stable
+        if: github.event.inputs.action == 'restore-stable'
+        run: |
+          TAG=$(cat STABLE)
+          [ "$TAG" != "v0" ] || { echo "::error::No stable version marked yet"; exit 1; }
+          git fetch --tags -f origin
+          git checkout main
+          # only the app itself goes back; the workflow and the key stay
+          git rm -r -q www
+          git checkout "$TAG" -- www package.json capacitor.config.json
+          git diff --cached --quiet || { git commit -m "Restore the stable version $TAG"; git push origin main; }
+      - name: Commit to publish
+        id: head
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-node@v4
+        if: github.event.inputs.action != 'mark-stable'
         with: { node-version: 22 }
       - uses: actions/setup-java@v4
+        if: github.event.inputs.action != 'mark-stable'
         with: { distribution: temurin, java-version: 21 }
       - uses: android-actions/setup-android@v3
-      - run: npm install
-      - run: npx cap add android
-      - run: npx cap sync android
+        if: github.event.inputs.action != 'mark-stable'
       - name: Build
-        working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
-      - run: cp android/app/build/outputs/apk/debug/app-debug.apk Mani.apk
-      - uses: softprops/action-gh-release@v2
+        if: github.event.inputs.action != 'mark-stable'
+        env:
+          N: ${{ github.run_number }}
+        run: |
+          echo "window.MANI_VERSION = $N;" > www/version.js
+          npm install
+          npx cap add android
+          # version = build number, so every build installs over the previous one
+          sed -i -E "s/versionCode [0-9]+/versionCode $N/; s/versionName \"[^\"]*\"/versionName \"1.$N\"/" android/app/build.gradle
+          npx cap sync android
+          cd android && ./gradlew assembleRelease --no-daemon
+      # Signed with release.keystore (kept in the repository: never change it, or installed apps stop updating)
+      - name: Sign
+        if: github.event.inputs.action != 'mark-stable'
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/zipalign" -p -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk aligned.apk
+          "$BT/apksigner" sign --ks release.keystore --ks-pass pass:mani12345 --ks-key-alias mani --out Mani.apk aligned.apk
+          "$BT/apksigner" verify Mani.apk
+      - name: Publish release
+        if: github.event.inputs.action != 'mark-stable'
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: Mani
-          body: "حمّلي Mani.apk وثبّتيه على التلفون."
+          tag_name: v${{ github.run_number }}
+          target_commitish: ${{ steps.head.outputs.sha }}
+          name: نسخة ${{ github.run_number }}
           files: Mani.apk
           make_latest: true
