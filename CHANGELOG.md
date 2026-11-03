@@ -13,3 +13,4 @@
 10. Layout clears the phone's status bar (top) and navigation bar (bottom), on the main screen and in every panel.
 11. Review fixes: night-mode text box readable; "clear done" keeps daily tasks; Back button closes the open panel first; bottom bar is two rows of four big buttons; typed text survives list refresh; failed translations are retried when a list opens; clear messages for "no internet" vs "service busy"; download and install errors reported separately; picture/quick taps no longer clear the box you were typing in.
 12. Auto voice: every Kirundi translation is read aloud for the maid (Kirundi voice if the phone has it, else Swahili); Arabic read with a female voice when the phone has one. Ready phrases use feminine address (كيف حالِك، إجازتِك).
+13. New soft colours (sage green and warm clay on cream; the same idea in night mode), soft buttons, matching printed PDF.

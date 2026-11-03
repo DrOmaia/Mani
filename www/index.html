@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Mani</title>
 <style>
-  :root { --bg:#f4f1ea; --card:#fff; --ink:#1d1d1d; --mut:#6b6b6b; --ar:#0f766e; --rn:#b45309; --line:#d6cfc0; }
+  :root { --bg:#f7f4ee; --card:#fffdf9; --ink:#2b2a27; --mut:#6f6a62; --ar:#4f7f76; --rn:#a86a3c; --line:#e4ddd0; --btn:#ece6da; }
   * { box-sizing:border-box; }
   /* keep everything clear of the phone's status bar (top) and navigation bar (bottom) */
   :root { --sat: max(env(safe-area-inset-top, 0px), 28px); --sab: max(env(safe-area-inset-bottom, 0px), 24px);
@@ -28,10 +28,10 @@
     padding:10px; resize:none; height:60px; background:var(--card); color:var(--ink); }
   button { border:0; border-radius:12px; font-size:22px; min-width:52px; color:#fff; cursor:pointer; font-family:inherit; }
   .ar button { background:var(--ar); } .rn button { background:var(--rn); }
-  button.alt { background:#e7e2d6 !important; color:var(--ink); }
+  button.alt { background:var(--btn) !important; color:var(--ink); }
   button:disabled { opacity:.5; }
   .bar { display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 10px; }
-  .bar button { flex:1 1 22%; min-height:48px; background:#e7e2d6; color:var(--ink); font-size:15px; padding:6px 2px; min-width:0; }
+  .bar button { flex:1 1 22%; min-height:48px; background:var(--btn); color:var(--ink); font-size:15px; padding:6px 2px; min-width:0; }
   #upd { display:block; background:var(--ar); color:#fff; text-align:center; padding:10px; font-size:16px; text-decoration:none; }
   #upd[hidden] { display:none; }
   /* panels */
@@ -40,13 +40,13 @@
   #panel[hidden] { display:none; }
   .ph { display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); }
   .ph h2 { flex:1; margin:0; font-size:20px; }
-  .ph button { background:#e7e2d6; color:var(--ink); font-size:16px; padding:8px 12px; }
+  .ph button { background:var(--btn); color:var(--ink); font-size:16px; padding:8px 12px; }
   .pb { flex:1; overflow:auto; padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
   .item { background:var(--card); border-radius:12px; padding:12px; display:flex; gap:10px; align-items:center; }
   .item .t { flex:1; min-width:0; overflow-wrap:anywhere; }
   .item .rnT { font-size:20px; direction:ltr; text-align:left; }
   .item .arT { font-size:15px; color:var(--mut); }
-  .item button { background:#e7e2d6; color:var(--ink); font-size:16px; min-width:40px; padding:6px; }
+  .item button { background:var(--btn); color:var(--ink); font-size:16px; min-width:40px; padding:6px; }
   .item.done .t { text-decoration:line-through; opacity:.55; }
   .item button.chk { width:36px; height:36px; min-width:36px; border-radius:50%; border:2px solid var(--rn); background:#fff; font-size:20px; color:var(--rn); padding:0; }
   .phr { cursor:pointer; }
@@ -66,15 +66,16 @@
   .tile .ic svg { width:76px; height:76px; display:block; }
   .tile b { font-size:17px; }
   /* night mode */
-  body.night { --bg:#1b1d22; --card:#2a2d35; --ink:#eceae4; --mut:#9aa0a8; --line:#3d414b; }
-  body.night .bar button, body.night .ph button, body.night .item button, body.night .set button, body.night button.alt { background:#3a3e48 !important; color:var(--ink); }
+  html:has(body.night) { background:#1e2227; }
+  body.night { --bg:#1e2227; --card:#2a2f36; --ink:#ece8df; --mut:#a3a9b0; --line:#3b414b; --btn:#3a3f49; }
+  body.night .bar button, body.night .ph button, body.night .item button, body.night .set button, body.night button.alt { background:var(--btn) !important; color:var(--ink); }
   /* text size */
   body.fs-s { --fs:0.85; } body.fs-l { --fs:1.25; }
   .out { font-size:calc(24px * var(--fs,1)); }
   textarea { font-size:calc(18px * var(--fs,1)); }
   .item .rnT { font-size:calc(20px * var(--fs,1)); }
   .set { display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:12px; padding:14px; font-size:18px; }
-  .set button { background:#e7e2d6; color:var(--ink); font-size:16px; padding:8px 12px; min-width:0; }
+  .set button { background:var(--btn); color:var(--ink); font-size:16px; padding:8px 12px; min-width:0; }
   .set button.on { background:var(--ar) !important; color:#fff !important; }
   .empty { color:var(--mut); text-align:center; padding:30px 0; }
 </style>
@@ -397,7 +398,7 @@ function pages() {
   let c, g, y;
   const page = () => {
     c = document.createElement('canvas'); c.width = W; c.height = H; g = c.getContext('2d');
-    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#1d1d1d'; y = M; out.push(c);
+    g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#2b2a27'; y = M; out.push(c);
   };
   const wrap = (text, font, max) => {
     g.font = font; const words = String(text).split(' '), lines = []; let l = '';
@@ -420,8 +421,8 @@ function pages() {
     rn.forEach(l => { y += 58; g.fillText(l, M + 90, y); });
     g.direction = 'rtl'; g.textAlign = 'right'; g.font = '32px sans-serif'; g.fillStyle = '#6b6b6b';
     ar.forEach(l => { y += 44; g.fillText(l, W - M, y); });
-    g.fillStyle = '#1d1d1d'; y += 22;
-    g.strokeStyle = '#e7e2d6'; g.lineWidth = 2; g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); y += 18;
+    g.fillStyle = '#2b2a27'; y += 22;
+    g.strokeStyle = '#e4ddd0'; g.lineWidth = 2; g.beginPath(); g.moveTo(M, y); g.lineTo(W - M, y); g.stroke(); y += 18;
   }
   return out;
 }
