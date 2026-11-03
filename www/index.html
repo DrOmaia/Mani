@@ -27,7 +27,7 @@
 </style>
 </head>
 <body>
-  <a id="upd" hidden href="https://github.com/DrOmaia/mani/releases/latest/download/Mani.apk"
+  <a id="upd" hidden href="https://github.com/DrOmaia/Mani/releases/latest/download/Mani.apk" onclick="update(event)"
      style="display:block;background:#0f766e;color:#fff;text-align:center;padding:10px;font-size:16px;text-decoration:none" dir="rtl">⬇️ في نسخة جديدة من التطبيق، اضغطي للتحديث</a>
   <!-- Upper half: Kirundi speaker (rotated to face her) -->
   <section class="half rn" dir="ltr">
@@ -54,13 +54,30 @@
 <script src="version.js"></script>
 <script>
 // update check: compare the installed build number with the latest GitHub release (vN)
+const APK_URL = 'https://github.com/DrOmaia/Mani/releases/latest/download/Mani.apk';
 (async () => {
+  const P0 = (window.Capacitor && Capacitor.Plugins) || {};
+  // the update file of the last update is not needed once the app has started again: remove it
+  try { if (P0.Filesystem) await P0.Filesystem.deleteFile({ path: 'Mani.apk', directory: 'CACHE' }); } catch (e) {}
   try {
-    const r = await fetch('https://api.github.com/repos/DrOmaia/mani/releases/latest');
+    const r = await fetch('https://api.github.com/repos/DrOmaia/Mani/releases/latest');
     const n = parseInt(((await r.json()).tag_name || '').replace('v', ''), 10);
     if (window.MANI_VERSION && n > window.MANI_VERSION) document.getElementById('upd').hidden = false;
   } catch (e) {}
 })();
+// download into the app's own cache (not Downloads), then open the installer
+async function update(ev) {
+  const P0 = (window.Capacitor && Capacitor.Plugins) || {};
+  if (!P0.Filesystem || !P0.FileOpener) return;   // no plugins: the link opens in the browser
+  ev.preventDefault();
+  const a = document.getElementById('upd');
+  a.textContent = '⏳ عم ينزّل التحديث…';
+  try {
+    const f = await P0.Filesystem.downloadFile({ url: APK_URL, path: 'Mani.apk', directory: 'CACHE' });
+    await P0.FileOpener.open({ filePath: f.path, contentType: 'application/vnd.android.package-archive' });
+    a.textContent = '⬇️ في نسخة جديدة من التطبيق، اضغطي للتحديث';
+  } catch (e) { a.textContent = '⚠️ التحديث ما نزل، اضغطي لتجرّبي مرة ثانية'; }
+}
 const P = (window.Capacitor && Capacitor.Plugins) || {};
 const $ = id => document.getElementById(id);
 
