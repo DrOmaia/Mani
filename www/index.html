@@ -597,19 +597,19 @@ const FT = {
     welcome:'أهلاً بكِ', whoAreYou:'مين أنتِ؟', code:'كود العائلة', codeHint:'نفس الكود لكل أفراد العائلة. إذا أنتِ أول واحد، خلّيه كما هو وانسخيه لهم.',
     start:'ابدئي', language:'اللغة', copyCode:'انسخي الكود', newCode:'كود جديد', testRing:'جرّبي الرنين', changeWho:'تغيير الاسم',
     empty:'ما في رسائل بعد', ringSent:'تم إرسال التنبيه', sendFail:'ما انبعتت، تأكدي من الإنترنت', copied:'تم النسخ',
-    ringFrom:'يرن عليكِ', quick:['جاية','بعد شوي','ما بقدر','أحتاج مساعدة'], roles:{mom:'الأم',dad:'الزوج',kid:'الولد',maid:'الخادمة'},
+    ringFrom:'يرن عليكِ', quick:['جاية','بعد شوي','ما بقدر','أحتاج مساعدة'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
     roleTitle:'اختاري اسمك', settingsTitle:'الإعدادات', ringBack:['جاية','بعد شوي','ما بقدر'], ringOk:'وصلني' },
   rn: { family:'Umuryango', chats:'Ibiganiro', back:'‹ Subira inyuma', settings:'⚙️', send:'Ohereza', ring:'🔔 Hamagara', writeHere:'Andika ubutumwa…',
     welcome:'Murakaza neza', whoAreYou:'Ni nde?', code:"Kode y'umuryango", codeHint:"Kode imwe ku bantu bose b'umuryango.",
     start:'Tangira', language:'Ururimi', copyCode:'Koporora kode', newCode:'Kode nshya', testRing:'Gerageza ihamagara', changeWho:'Hindura izina',
     empty:"Nta butumwa", ringSent:'Ihamagara ryoherejwe', sendFail:"Ntibyoherejwe, reba interineti", copied:'Byakoporowe',
-    ringFrom:'Akurahamagaye', quick:['Ndaje','Umwanya muto','Sinshoboye','Ndakeneye ubufasha'], roles:{mom:'Mama',dad:'Papa',kid:'Umwana',maid:'Umukozi'},
+    ringFrom:'Akurahamagaye', quick:['Ndaje','Umwanya muto','Sinshoboye','Ndakeneye ubufasha'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
     roleTitle:'Hitamo izina ryawe', settingsTitle:'Igenamiterere', ringBack:['Ndaje','Umwanya muto','Sinshoboye'], ringOk:'Narabyumvise' },
   en: { family:'Family', chats:'Chats', back:'‹ Back', settings:'⚙️', send:'Send', ring:'🔔 Call', writeHere:'Type a message…',
     welcome:'Welcome', whoAreYou:'Who are you?', code:'Family code', codeHint:'The same code on every family phone. If you are first, keep it and share it.',
     start:'Start', language:'Language', copyCode:'Copy code', newCode:'New code', testRing:'Test the ring', changeWho:'Change name',
     empty:'No messages yet', ringSent:'Ring sent', sendFail:'Not sent, check the internet', copied:'Copied',
-    ringFrom:'is calling you', quick:['Coming','In a moment','Cannot','I need help'], roles:{mom:'Mom',dad:'Dad',kid:'Child',maid:'Maid'},
+    ringFrom:'is calling you', quick:['Coming','In a moment','Cannot','I need help'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
     roleTitle:'Choose your name', settingsTitle:'Settings', ringBack:['Coming','In a moment','Cannot'], ringOk:'Got it' }
 };
 const LANG_NAMES = { ar:'العربية', rn:'Ikirundi', en:'English' };
@@ -620,12 +620,14 @@ let famUi = { thread: null, settings: false };
 let famES = null, ringTimer = null, ringCtx = null;
 const famT = () => FT[(fam && fam.lang) || 'ar'];
 const famName = r => famT().roles[r] || r;
+const ROLES = ['mom','dad','k1','k2','k3','maid'];
+const ROLE_ICO = { mom:'👩', dad:'👨', k1:'🧒', k2:'🧒', k3:'🧒', maid:'🧹' };
 const randCode = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 30]).join('');
 
 function famSave() { save('fam', fam); save('famMsgs', famMsgs); save('famRead', famRead); }
 function famThreads() {
   const t = [{ id: 'all', name: famT().family, ico: '👨‍👩‍👧' }];
-  ['mom', 'dad', 'kid', 'maid'].filter(r => r !== fam.me).forEach(r => t.push({ id: r, name: famName(r), ico: { mom:'👩',dad:'👨',kid:'🧒',maid:'🧹' }[r] }));
+  ROLES.filter(r => r !== fam.me).forEach(r => t.push({ id: r, name: famName(r), ico: ROLE_ICO[r] }));
   return t;
 }
 function famThreadMsgs(th) {
@@ -707,7 +709,7 @@ function famSetup(body) {
   body.innerHTML = `<div class="fSet">
     <div><b>${esc(T.welcome)}</b></div>
     <div>${esc(T.roleTitle)}</div>
-    <div class="fRoles">${['mom','dad','kid','maid'].map(r => `<button data-role="${r}">${esc(T.roles[r])}</button>`).join('')}</div>
+    <div class="fRoles">${ROLES.map(r => `<button data-role="${r}">${esc(T.roles[r])}</button>`).join('')}</div>
     <div>${esc(T.code)}</div>
     <input id="famCode" value="${esc(code)}" dir="ltr" autocomplete="off">
     <div class="lbl2" style="color:var(--mut);font-size:14px">${esc(T.codeHint)}</div>

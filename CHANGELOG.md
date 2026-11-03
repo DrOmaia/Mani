@@ -20,3 +20,4 @@
 17. Kirundi voice built in: on first use the app downloads a Kirundi voice model (Meta MMS, about 60 MB) once, then reads Kirundi offline. Order: phone Kirundi voice, built-in voice, Swahili voice. NOT yet tested on a phone (the model host was unreachable from the build environment).
 18. The Kirundi voice model is added to the APK at build time (not downloaded by the phone), so updates keep it. Not yet tested on a phone.
 19. Family (👨‍👩‍👧 العائلة): each person picks a name once (mom, dad, child, maid); chats list and bubbles; quick replies; 🔔 ring that opens a full-screen alert with a loud tone and vibration; messages and rings sent through ntfy.sh with a shared family code; languages Arabic / Kirundi / English, maid starts in Kirundi. Ring and messages reach the phone only while Mani is open (background full-screen ring needs a native Android step, next).
+20. Family members use their names: رند (mom), أميه (dad), حسان, سلمى, عبدالملك (children), and the maid.
