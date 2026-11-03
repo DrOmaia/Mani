@@ -9,3 +9,4 @@
 6. Picture tiles (🧹 أعمال): big emoji buttons for the maid, tap = Kirundi shown on top. Daily tasks (🔁 كل يوم) untick themselves each new day.
 7. Quick replies: maid chips on her half (Yego, Oya, Murakoze, Ntabwo numvise, sick, hungry, need help) and 💬 ردود panel for her (sick?, hungry?, where?, slow down, danger).
 8. ⚙️ Settings: night mode and text size (small / medium / large), kept on the phone.
+9. Picture tiles now use simple SVG drawings (drawn in the app, no internet needed) instead of emoji.
