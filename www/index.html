@@ -88,6 +88,39 @@
   .pal.on { outline:3px solid var(--ar); }
   .msg { background:var(--card); border-radius:12px; padding:14px; font-size:17px; line-height:1.6; }
   .set .lbl2 { color:var(--mut); font-size:14px; }
+  /* family: chats, bubbles, ring */
+  .fList { display:flex; flex-direction:column; }
+  .fRow { display:flex; align-items:center; gap:12px; background:var(--card); padding:12px; border-bottom:1px solid var(--line); cursor:pointer; text-align:start; }
+  .fAv { width:48px; height:48px; border-radius:50%; background:var(--ar); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; flex:none; }
+  .fRow .fM { flex:1; min-width:0; }
+  .fRow .fN { font-weight:700; font-size:18px; }
+  .fRow .fP { color:var(--mut); font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fBadge { background:var(--rn); color:#fff; border-radius:999px; padding:2px 9px; font-size:13px; min-width:24px; text-align:center; }
+  .fChat { display:flex; flex-direction:column; gap:8px; padding:10px 12px; }
+  .bub { max-width:78%; padding:9px 12px; border-radius:14px; font-size:18px; line-height:1.5; background:var(--card); overflow-wrap:anywhere; box-shadow:0 1px 1px rgba(0,0,0,.06); }
+  .bub.me { align-self:flex-end; background:#dcefe9; }
+  .bub.ring { border:2px solid var(--rn); }
+  .bub small { display:block; color:var(--mut); font-size:12px; margin-top:4px; }
+  .fQuick { display:flex; gap:6px; overflow-x:auto; padding:6px 12px 0; }
+  .fQuick button { background:var(--btn); color:var(--ink); font-size:15px; padding:8px 12px; white-space:nowrap; min-width:0; }
+  .fIn { display:flex; gap:6px; align-items:center; padding:10px 12px; border-top:1px solid var(--line); background:var(--card); }
+  .fIn input { flex:1; min-width:0; font:inherit; font-size:17px; padding:10px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); }
+  .fIn button { min-width:46px; min-height:46px; padding:0; font-size:20px; }
+  .fIn button.rb { background:var(--rn); }
+  .fSet { background:var(--card); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px; font-size:17px; }
+  .fSet input { font:inherit; font-size:17px; padding:10px; border:1px solid var(--line); border-radius:10px; direction:ltr; }
+  .fRoles { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .fRoles button { background:var(--card); color:var(--ink); font-size:20px; padding:18px 8px; min-height:70px; }
+  .fRoles button.on { background:var(--ar) !important; color:#fff !important; }
+  #ringOv { position:fixed; inset:0; background:#1b1f1e; color:#fff; display:flex; align-items:center; justify-content:center; z-index:9; padding:24px; }
+  #ringOv[hidden] { display:none; }
+  .rgBox { text-align:center; width:100%; max-width:420px; }
+  .rgBell { font-size:90px; animation:rgShake .6s infinite; }
+  @keyframes rgShake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-18deg)} 75%{transform:rotate(18deg)} }
+  .rgFrom { font-size:28px; margin:18px 0 28px; font-weight:700; }
+  .rgBtns { display:flex; flex-direction:column; gap:12px; }
+  .rgBtns button { font-size:22px; padding:18px; border-radius:16px; color:#fff; background:var(--ar); min-height:64px; }
+  .rgBtns button.sec { background:#3a4442; }
   .empty { color:var(--mut); text-align:center; padding:30px 0; }
 </style>
 </head>
@@ -123,12 +156,17 @@
     <button data-open="tasks">✅ المهام</button>
     <button data-open="pics">🧹 أعمال</button>
     <button data-open="quick">💬 ردود</button>
+    <button data-open="fam">👨‍👩‍👧 العائلة</button>
     <button data-open="settings">⚙️</button>
     <button data-open="history">🕘 السجل</button>
     <button id="sayAr" aria-label="اقرأ بالبروندي">🔊</button>
     <button id="flip" aria-label="قلب الشاشة">⇅</button>
   </div>
 
+  <div id="ringOv" hidden dir="rtl">
+    <div class="rgBox"><div class="rgBell">🔔</div><div id="rgFrom" class="rgFrom"></div>
+      <div class="rgBtns" id="rgBtns"></div></div>
+  </div>
   <div id="panel" hidden dir="rtl">
     <div class="ph"><h2 id="pTitle"></h2><span id="pTools"></span><button id="pClose">✕</button></div>
     <div class="pb" id="pBody"></div>
@@ -368,6 +406,8 @@ function render() {
         <button class="set" data-act="getUpd" id="getUpd" ${lastNewer ? '' : 'hidden'}><span>⬇️ حمّلي التحديث</span></button>`;
     }
     body.innerHTML = html;
+  } else if (panel === 'fam') {
+    renderFam();
   } else if (panel === 'history') {
     $('pTitle').textContent = '🕘 السجل';
     tools.innerHTML = history.length ? '<button data-act="clearHist">مسح السجل</button>' : '';
@@ -550,6 +590,213 @@ async function checkUpd() {
     $('getUpd').hidden = !lastNewer;
   } catch (e) { m.textContent = '⚠️ ما قدرت أفحص. تأكدي من الإنترنت وجرّبي مرة ثانية.'; }
 }
+
+// ---------- family: profiles, languages, chats, ring (over ntfy.sh) ----------
+const FT = {
+  ar: { family:'العائلة', chats:'المحادثات', back:'‹ رجوع', settings:'⚙️', send:'إرسال', ring:'🔔 تعالي', writeHere:'اكتبي رسالة…',
+    welcome:'أهلاً بكِ', whoAreYou:'مين أنتِ؟', code:'كود العائلة', codeHint:'نفس الكود لكل أفراد العائلة. إذا أنتِ أول واحد، خلّيه كما هو وانسخيه لهم.',
+    start:'ابدئي', language:'اللغة', copyCode:'انسخي الكود', newCode:'كود جديد', testRing:'جرّبي الرنين', changeWho:'تغيير الاسم',
+    empty:'ما في رسائل بعد', ringSent:'تم إرسال التنبيه', sendFail:'ما انبعتت، تأكدي من الإنترنت', copied:'تم النسخ',
+    ringFrom:'يرن عليكِ', quick:['جاية','بعد شوي','ما بقدر','أحتاج مساعدة'], roles:{mom:'الأم',dad:'الزوج',kid:'الولد',maid:'الخادمة'},
+    roleTitle:'اختاري اسمك', settingsTitle:'الإعدادات', ringBack:['جاية','بعد شوي','ما بقدر'], ringOk:'وصلني' },
+  rn: { family:'Umuryango', chats:'Ibiganiro', back:'‹ Subira inyuma', settings:'⚙️', send:'Ohereza', ring:'🔔 Hamagara', writeHere:'Andika ubutumwa…',
+    welcome:'Murakaza neza', whoAreYou:'Ni nde?', code:"Kode y'umuryango", codeHint:"Kode imwe ku bantu bose b'umuryango.",
+    start:'Tangira', language:'Ururimi', copyCode:'Koporora kode', newCode:'Kode nshya', testRing:'Gerageza ihamagara', changeWho:'Hindura izina',
+    empty:"Nta butumwa", ringSent:'Ihamagara ryoherejwe', sendFail:"Ntibyoherejwe, reba interineti", copied:'Byakoporowe',
+    ringFrom:'Akurahamagaye', quick:['Ndaje','Umwanya muto','Sinshoboye','Ndakeneye ubufasha'], roles:{mom:'Mama',dad:'Papa',kid:'Umwana',maid:'Umukozi'},
+    roleTitle:'Hitamo izina ryawe', settingsTitle:'Igenamiterere', ringBack:['Ndaje','Umwanya muto','Sinshoboye'], ringOk:'Narabyumvise' },
+  en: { family:'Family', chats:'Chats', back:'‹ Back', settings:'⚙️', send:'Send', ring:'🔔 Call', writeHere:'Type a message…',
+    welcome:'Welcome', whoAreYou:'Who are you?', code:'Family code', codeHint:'The same code on every family phone. If you are first, keep it and share it.',
+    start:'Start', language:'Language', copyCode:'Copy code', newCode:'New code', testRing:'Test the ring', changeWho:'Change name',
+    empty:'No messages yet', ringSent:'Ring sent', sendFail:'Not sent, check the internet', copied:'Copied',
+    ringFrom:'is calling you', quick:['Coming','In a moment','Cannot','I need help'], roles:{mom:'Mom',dad:'Dad',kid:'Child',maid:'Maid'},
+    roleTitle:'Choose your name', settingsTitle:'Settings', ringBack:['Coming','In a moment','Cannot'], ringOk:'Got it' }
+};
+const LANG_NAMES = { ar:'العربية', rn:'Ikirundi', en:'English' };
+let fam = load('fam', null);            // {me, code, lang}
+let famMsgs = load('famMsgs', []);      // [{id, f, t, x, r, at, mine}]
+let famRead = load('famRead', {});      // thread -> last read time
+let famUi = { thread: null, settings: false };
+let famES = null, ringTimer = null, ringCtx = null;
+const famT = () => FT[(fam && fam.lang) || 'ar'];
+const famName = r => famT().roles[r] || r;
+const randCode = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 30]).join('');
+
+function famSave() { save('fam', fam); save('famMsgs', famMsgs); save('famRead', famRead); }
+function famThreads() {
+  const t = [{ id: 'all', name: famT().family, ico: '👨‍👩‍👧' }];
+  ['mom', 'dad', 'kid', 'maid'].filter(r => r !== fam.me).forEach(r => t.push({ id: r, name: famName(r), ico: { mom:'👩',dad:'👨',kid:'🧒',maid:'🧹' }[r] }));
+  return t;
+}
+function famThreadMsgs(th) {
+  return famMsgs.filter(m => th === 'all' ? m.t === 'all' : (m.f === th && m.t === fam.me) || (m.f === fam.me && m.t === th))
+    .sort((a, b) => a.at - b.at);
+}
+function famUnread(th) {
+  const last = famRead[th] || 0;
+  return famThreadMsgs(th).filter(m => !m.mine && m.at > last).length;
+}
+
+async function famSend(to, text, ring) {
+  const body = JSON.stringify({ f: fam.me, t: to, x: text, r: !!ring });
+  const headers = ring ? { 'X-Priority': '5', 'X-Tags': 'bell' } : {};
+  const r = await fetch('https://ntfy.sh/mani-fam-' + fam.code, { method: 'POST', body, headers });
+  if (!r.ok) throw new Error(r.status);
+  famMsgs.push({ id: 'me' + Date.now() + Math.random(), f: fam.me, t: to, x: text, r: !!ring, at: Date.now(), mine: true });
+  famSave();
+}
+
+function famConnect() {
+  if (!fam || !fam.me || famES) return;
+  try {
+    famES = new EventSource('https://ntfy.sh/mani-fam-' + fam.code + '/sse?since=' + Math.floor(Date.now() / 1000));
+    famES.onmessage = e => {
+      let ev; try { ev = JSON.parse(e.data); } catch (_) { return; }
+      if (ev.event !== 'message' || famMsgs.some(m => m.id === ev.id)) return;
+      let m; try { m = JSON.parse(ev.message); } catch (_) { return; }
+      if (!m || m.f === fam.me || (m.t !== 'all' && m.t !== fam.me)) return;
+      famMsgs.push({ id: ev.id, f: m.f, t: m.t, x: m.x, r: !!m.r, at: Date.now(), mine: false });
+      famSave();
+      if (m.r) ringAlert(m); else if (!$('panel').hidden && panel === 'fam') renderFam();
+    };
+  } catch (e) {}
+}
+
+// full-screen ring: a loud tone and vibration until she answers
+function ringAlert(m) {
+  const ov = $('ringOv'); ov.hidden = false;
+  $('rgFrom').textContent = famName(m.f) + ' ' + famT().ringFrom;
+  const btns = $('rgBtns'); btns.innerHTML = famT().ringBack.map((q, i) =>
+    `<button data-rq="${i}" class="${i ? 'sec' : ''}">${esc(q)}</button>`).join('') + `<button class="sec" data-rq="ok">${esc(famT().ringOk)}</button>`;
+  btns.dataset.from = m.f;
+  stopRing(); startRing();
+}
+function startRing() {
+  try {
+    ringCtx = ringCtx || new (window.AudioContext || window.webkitAudioContext)();
+    ringTimer = setInterval(() => {
+      const o = ringCtx.createOscillator(), g = ringCtx.createGain();
+      o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.25;
+      o.connect(g); g.connect(ringCtx.destination); o.start(); o.stop(ringCtx.currentTime + 0.35);
+    }, 700);
+  } catch (e) {}
+  if (navigator.vibrate) ringTimer = ringTimer || setInterval(() => navigator.vibrate([400, 200, 400]), 1200);
+  if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
+}
+function stopRing() { if (ringTimer) clearInterval(ringTimer); ringTimer = null; if (navigator.vibrate) navigator.vibrate(0); }
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-rq]'); if (!b) return;
+  const from = $('rgBtns').dataset.from, idx = b.dataset.rq;
+  stopRing(); $('ringOv').hidden = true;
+  if (idx !== 'ok' && from) famSend(from, famT().ringBack[+idx], false).catch(() => {});
+});
+
+function renderFam() {
+  const body = $('pBody'), foot = $('pFoot'), tools = $('pTools');
+  foot.innerHTML = ''; foot.dataset.p = ''; tools.innerHTML = '';
+  if (!fam || !fam.me) return famSetup(body);
+  if (famUi.settings) return famSettings(body, foot);
+  if (famUi.thread === null) return famList(body, foot, tools);
+  return famChat(body, foot, tools);
+}
+function famSetup(body) {
+  $('pTitle').textContent = '👨‍👩‍👧 ' + FT.ar.family;
+  const lang = (fam && fam.lang) || 'ar';
+  const T = FT[lang];
+  const code = (fam && fam.code) || randCode();
+  body.innerHTML = `<div class="fSet">
+    <div><b>${esc(T.welcome)}</b></div>
+    <div>${esc(T.roleTitle)}</div>
+    <div class="fRoles">${['mom','dad','kid','maid'].map(r => `<button data-role="${r}">${esc(T.roles[r])}</button>`).join('')}</div>
+    <div>${esc(T.code)}</div>
+    <input id="famCode" value="${esc(code)}" dir="ltr" autocomplete="off">
+    <div class="lbl2" style="color:var(--mut);font-size:14px">${esc(T.codeHint)}</div>
+    <button id="famStart" class="bar" style="background:var(--ar);color:#fff;padding:12px;border-radius:12px;font-size:18px">${esc(T.start)}</button>
+  </div>`;
+  body.dataset.role = '';
+  $('pFoot').innerHTML = ''; $('pFoot').dataset.p = '';
+  body.querySelectorAll('[data-role]').forEach(b => b.onclick = () => { body.dataset.role = b.dataset.role; body.querySelectorAll('[data-role]').forEach(x => x.classList.toggle('on', x === b)); });
+  $('famStart').onclick = () => {
+    const role = body.dataset.role, c = $('famCode').value.trim();
+    if (!role || c.length < 6) { alert(FT[lang].roleTitle); return; }
+    fam = { me: role, code: c, lang: fam && fam.lang ? fam.lang : (role === 'maid' ? 'rn' : 'ar') };
+    famSave(); famConnect(); render();
+  };
+}
+function famList(body, foot, tools) {
+  $('pTitle').textContent = famT().chats;
+  tools.innerHTML = `<button data-fam="settings">${famT().settings}</button>`;
+  body.innerHTML = '<div class="fList">' + famThreads().map(th => {
+    const ms = famThreadMsgs(th.id), last = ms[ms.length - 1], un = famUnread(th.id);
+    const prev = last ? (last.r ? '🔔 ' : '') + last.x : famT().empty;
+    return `<div class="fRow" data-thread="${th.id}"><div class="fAv">${th.ico}</div>
+      <div class="fM"><div class="fN">${esc(th.name)}</div><div class="fP">${esc(prev)}</div></div>
+      ${un ? `<span class="fBadge">${un}</span>` : ''}</div>`;
+  }).join('') + '</div>';
+}
+function famChat(body, foot, tools) {
+  const th = famThreads().find(x => x.id === famUi.thread) || famThreads()[0];
+  $('pTitle').textContent = th.ico + ' ' + th.name;
+  tools.innerHTML = `<button data-fam="back">${famT().back}</button>`;
+  const ms = famThreadMsgs(th.id);
+  body.innerHTML = '<div class="fChat">' + (ms.length ? ms.map(m => {
+    const d = new Date(m.at), when = d.toLocaleTimeString(fam.lang === 'ar' ? 'ar' : 'en', { hour: '2-digit', minute: '2-digit' });
+    const who = m.mine ? '' : `<b style="font-size:14px;color:var(--mut)">${esc(famName(m.f))}</b><br>`;
+    return `<div class="bub ${m.mine ? 'me' : ''} ${m.r ? 'ring' : ''}">${who}${m.r ? '🔔 ' : ''}${esc(m.x)}<small>${when}${m.mine ? ' ✓' : ''}</small></div>`;
+  }).join('') : `<div class="empty">${esc(famT().empty)}</div>`) + '</div>';
+  setTimeout(() => body.scrollTop = body.scrollHeight, 0);
+  foot.dataset.p = 'chat-' + th.id;
+  foot.innerHTML = `<div style="width:100%"><div class="fQuick">${famT().quick.map((q, i) => `<button data-fq="${i}">${esc(q)}</button>`).join('')}</div>
+    <div class="fIn"><button class="rb" data-fam="ring" aria-label="ring">🔔</button><input id="famTxt" placeholder="${esc(famT().writeHere)}"><button data-fam="send" aria-label="send">➜</button></div></div>`;
+  famRead[th.id] = Date.now(); save('famRead', famRead);
+}
+function famSettings(body, foot) {
+  $('pTitle').textContent = famT().settingsTitle;
+  const T = famT();
+  body.innerHTML = `<div class="fSet">
+    <div>${esc(T.language)}</div>
+    ${['ar','rn','en'].map(l => `<button class="set ${fam.lang === l ? 'on' : ''}" data-flang="${l}"><span>${LANG_NAMES[l]}</span><span>${fam.lang === l ? '✓' : ''}</span></button>`).join('')}
+    <button class="set" data-fam="copy"><span>${esc(T.copyCode)}</span><span dir="ltr">${esc(fam.code)}</span></button>
+    <button class="set" data-fam="ringtest"><span>${esc(T.testRing)}</span><span>🔔</span></button>
+    <button class="set" data-fam="who"><span>${esc(T.changeWho)}</span><span>${esc(T.roles[fam.me])}</span></button>
+  </div>`;
+  famUi.settings = true;
+}
+
+document.addEventListener('click', e => {
+  if (!$('panel').hidden && panel === 'fam') {
+    const row = e.target.closest('[data-thread]');
+    if (row) { famUi.thread = row.dataset.thread; return render(); }
+    const fq = e.target.closest('[data-fq]');
+    if (fq) return famSendTo(famT().quick[+fq.dataset.fq]);
+    const fl = e.target.closest('[data-flang]');
+    if (fl) { fam.lang = fl.dataset.flang; famSave(); return render(); }
+    const fa = e.target.closest('[data-fam]');
+    if (!fa) return;
+    const a = fa.dataset.fam;
+    if (a === 'settings') { famUi.settings = true; return render(); }
+    if (a === 'back') { famUi.settings = false; famUi.thread = null; return render(); }
+    if (a === 'send') return famSendTo($('famTxt').value.trim());
+    if (a === 'ring') return famRing();
+    if (a === 'ringtest') { startRing(); setTimeout(stopRing, 2500); return; }
+    if (a === 'copy') { try { navigator.clipboard.writeText(fam.code); } catch (_) {} return; }
+    if (a === 'who') { fam = null; famES && famES.close(); famES = null; famUi = { thread: null, settings: false }; famSave(); return render(); }
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'famTxt') famSendTo(e.target.value.trim()); });
+async function famSendTo(text) {
+  if (!text || !fam) return;
+  const to = famUi.thread || 'all';
+  try { await famSend(to, text, false); } catch (e) { alert(famT().sendFail); return; }
+  $('famTxt') && ($('famTxt').value = ''); renderFam();
+}
+async function famRing() {
+  if (!fam) return;
+  const to = famUi.thread || 'all';
+  try { await famSend(to, '🔔', true); alert(famT().ringSent); } catch (e) { alert(famT().sendFail); }
+  renderFam();
+}
+famConnect();
 
 // ---------- hardware Back button: close the open panel first ----------
 if (P.App) P.App.addListener('backButton', () => { if (panel) closePanel(); else P.App.exitApp(); });
