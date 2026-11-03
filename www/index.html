@@ -48,6 +48,12 @@
   .pf { display:flex; gap:8px; padding:10px 16px; border-top:1px solid var(--line); }
   .pf input { flex:1; min-width:0; font:inherit; font-size:17px; padding:10px; border:1px solid var(--line); border-radius:12px; }
   .pf button { background:var(--ar); padding:0 14px; font-size:16px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .tile { background:var(--card); color:var(--ink); border-radius:16px; padding:14px 6px; display:flex; flex-direction:column; align-items:center; gap:6px; min-height:110px; }
+  .tile span { font-size:46px; line-height:1; }
+  .tile small { font-size:13px; color:var(--mut); text-align:center; }
+  .dl { display:flex; align-items:center; gap:4px; font-size:14px; color:var(--mut); white-space:nowrap; }
+  .dl input { width:18px; height:18px; }
   .empty { color:var(--mut); text-align:center; padding:30px 0; }
 </style>
 </head>
@@ -80,6 +86,7 @@
   <div class="bar" dir="rtl">
     <button data-open="phrases">⭐ جمل</button>
     <button data-open="tasks">✅ المهام</button>
+    <button data-open="pics">🧹 أعمال</button>
     <button data-open="history">🕘 السجل</button>
     <button id="sayAr" aria-label="اقرأ">🔊</button>
     <button id="flip" aria-label="قلب الشاشة">⇅</button>
@@ -109,7 +116,21 @@ const DEFAULT_PHRASES = [
 ];
 let phrases = load('phrases', DEFAULT_PHRASES.map(ar => ({ ar, rn: '' })));
 let history = load('history', []);        // [{from:'ar'|'rn'|'sw', src, dst, at}] — kept forever
-let tasks = load('tasks', []);            // [{ar, rn, done}]
+let tasks = load('tasks', []);            // [{ar, rn, done, daily}]
+// daily tasks start unticked each new day
+(function () {
+  const today = new Date().toDateString();
+  if (load('day', '') !== today) {
+    tasks.forEach(t => { if (t.daily) t.done = false; });
+    save('tasks', tasks); save('day', today);
+  }
+})();
+// picture tiles for the maid: emoji + Arabic text (she sees the Kirundi on top)
+const PICS = [
+  ['🧽', 'نظّفي المطبخ'], ['🍽️', 'اغسلي الصحون'], ['👕', 'شغّلي الغسالة'], ['🧺', 'انشري الغسيل'],
+  ['🧼', 'امسحي الأرض'], ['🚽', 'نظّفي الحمامات'], ['🗑️', 'طلّعي الزبالة'], ['🍲', 'حضّري الغدا'],
+  ['🧺', 'اكوي الملابس'], ['🛏️', 'رتّبي غرف النوم'], ['🛒', 'شو ناقص من السوق؟'], ['🤫', 'الأولاد نايمين، بهدوء لو سمحتِ']
+];
 let cache = load('cache', {});            // 'ar>rn|text' → translation, works offline next time
 if (load('flat', false)) document.body.classList.add('flat');
 
@@ -198,9 +219,13 @@ function render() {
       + (tasks.some(t => t.done) ? '<button data-act="clearDone">مسح المنجز</button>' : '');
     body.innerHTML = tasks.map((t, i) => `<div class="item${t.done ? ' done' : ''}">
       <button class="chk" data-tick="${i}">${t.done ? '✓' : ''}</button>
-      <div class="t"><div class="rnT">${esc(t.rn || '…')}</div><div class="arT">${esc(t.ar)}</div></div>
+      <div class="t"><div class="rnT">${esc(t.rn || '…')}${t.daily ? ' 🔁' : ''}</div><div class="arT">${esc(t.ar)}</div></div>
       <button data-deltask="${i}" aria-label="حذف">🗑</button></div>`).join('') || '<div class="empty">ما في مهام · Nta bikorwa</div>';
-    foot.innerHTML = '<input id="newTask" placeholder="مهمة جديدة…"><button data-act="addTask">إضافة</button>';
+    foot.innerHTML = '<label class="dl"><input type="checkbox" id="newDaily"> كل يوم</label><input id="newTask" placeholder="مهمة جديدة…"><button data-act="addTask">إضافة</button>';
+  } else if (panel === 'pics') {
+    $('pTitle').textContent = '🧹 أعمال · Imirimo';
+    body.innerHTML = '<div class="grid">' + PICS.map((p, i) =>
+      `<button class="tile" data-pic="${i}"><span>${p[0]}</span><small>${esc(p[1])}</small></button>`).join('') + '</div>';
   } else if (panel === 'history') {
     $('pTitle').textContent = '🕘 السجل';
     tools.innerHTML = history.length ? '<button data-act="clearHist">مسح السجل</button>' : '';
@@ -222,7 +247,7 @@ async function addPhrase() {
 }
 async function addTask() {
   const ar = $('newTask').value.trim(); if (!ar) return;
-  const t = { ar, rn: '', done: false };
+  const t = { ar, rn: '', done: false, daily: !!($('newDaily') && $('newDaily').checked) };
   tasks.push(t); save('tasks', tasks); render();
   try { t.rn = await translate(ar, 'ar', 'rn'); save('tasks', tasks); render(); } catch (e) {}
 }
@@ -234,10 +259,11 @@ async function sayPhrase(i) {
 }
 
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask]');
+  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask],[data-pic]');
   if (!b) return;
   const d = b.dataset;
   if (d.open) return openPanel(d.open);
+  if (d.pic != null) { const ar = PICS[+d.pic][1]; closePanel(); return go('ar', ar); }
   if (d.delphr != null) { if (confirm('حذف الجملة؟')) { phrases.splice(+d.delphr, 1); save('phrases', phrases); render(); } return; }
   if (d.say != null) return sayPhrase(+d.say);
   if (d.tick != null) { tasks[+d.tick].done = !tasks[+d.tick].done; save('tasks', tasks); return render(); }
