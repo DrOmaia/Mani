@@ -25,13 +25,13 @@
   .back { font-size:14px; color:var(--mut); min-height:1em; }
   .row { display:flex; gap:8px; }
   textarea { flex:1; font:inherit; font-size:18px; border:1px solid var(--line); border-radius:12px;
-    padding:10px; resize:none; height:60px; background:#fff; color:var(--ink); }
+    padding:10px; resize:none; height:60px; background:var(--card); color:var(--ink); }
   button { border:0; border-radius:12px; font-size:22px; min-width:52px; color:#fff; cursor:pointer; font-family:inherit; }
   .ar button { background:var(--ar); } .rn button { background:var(--rn); }
   button.alt { background:#e7e2d6 !important; color:var(--ink); }
   button:disabled { opacity:.5; }
-  .bar { display:flex; gap:6px; padding:0 16px 10px; }
-  .bar button { flex:1; background:#e7e2d6; color:var(--ink); font-size:15px; padding:9px 4px; min-width:0; }
+  .bar { display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 10px; }
+  .bar button { flex:1 1 22%; min-height:48px; background:#e7e2d6; color:var(--ink); font-size:15px; padding:6px 2px; min-width:0; }
   #upd { display:block; background:var(--ar); color:#fff; text-align:center; padding:10px; font-size:16px; text-decoration:none; }
   #upd[hidden] { display:none; }
   /* panels */
@@ -206,14 +206,16 @@ async function go(from, given) {
     const res = await translate(text, from, to);
     own.textContent = text; other.textContent = res;
     $('backAr').textContent = $('backRn').textContent = '';
-    inp.value = '';
+    if (!given) inp.value = '';   // only clear the box when its own text was sent
     history.push({ from, src: text, dst: res, at: Date.now() }); save('history', history);
     if (!isAr) speakAr(res);
     // back-translation: how the other side will understand it
     try { back.textContent = (isAr ? '↩︎ يعني: ' : '↩︎ ') + await translate(res, to, from); } catch (e) {}
   } catch (e) {
-    own.textContent = isAr ? '⚠️ ما في إنترنت أو الترجمة ما اشتغلت، جرّبي مرة ثانية.'
-                           : '⚠️ Nta interineti. Subira ugerageze.';
+    const httpErr = /^\d+$/.test(String(e.message));   // the translation service answered with an error
+    own.textContent = httpErr
+      ? (isAr ? '⚠️ خدمة الترجمة مشغولة الآن، جرّبي بعد شوي.' : '⚠️ Serivisi yo guhindura irarushye. Subira nyuma.')
+      : (isAr ? '⚠️ ما في إنترنت، جرّبي لما يرجع الإنترنت.' : '⚠️ Nta interineti. Subira igihe umurongo ugarutse.');
   }
   busy = false; $('goAr').disabled = $('goRn').disabled = false;
 }
@@ -236,27 +238,29 @@ async function listen(lang, cb) {
 
 // ---------- panels ----------
 let panel = '';
-function openPanel(name) { panel = name; $('panel').hidden = false; render(); }
+function openPanel(name) { panel = name; $('panel').hidden = false; $('pFoot').dataset.p = ''; render(); fillMissing(); }
 function closePanel() { panel = ''; $('panel').hidden = true; }
+// footer is built once per panel, so typed text survives a refresh of the list
+const setFoot = h => { const f = $('pFoot'); if (f.dataset.p !== panel) { f.innerHTML = h; f.dataset.p = panel; } };
 
 function render() {
   const body = $('pBody'), foot = $('pFoot'), tools = $('pTools');
-  tools.innerHTML = ''; foot.innerHTML = '';
+  tools.innerHTML = '';
   if (panel === 'phrases') {
     $('pTitle').textContent = '⭐ جمل جاهزة';
     body.innerHTML = phrases.map((p, i) => `<div class="item phr" data-say="${i}"><div class="t">
       <div>${esc(p.ar)}</div>${p.rn ? `<div class="arT" dir="ltr">${esc(p.rn)}</div>` : ''}</div>
       <button data-delphr="${i}" aria-label="حذف">🗑</button></div>`).join('') || '<div class="empty">ما في جمل</div>';
-    foot.innerHTML = '<input id="newPhr" placeholder="جملة جديدة…"><button data-act="addPhr">إضافة</button>';
+    setFoot('<input id="newPhr" placeholder="جملة جديدة…"><button data-act="addPhr">إضافة</button>');
   } else if (panel === 'tasks') {
     $('pTitle').textContent = '✅ المهام · Ibikorwa';
     tools.innerHTML = (tasks.length ? '<button data-act="shareText">📤 نص</button> <button data-act="sharePdf">📄 PDF</button> ' : '')
-      + (tasks.some(t => t.done) ? '<button data-act="clearDone">مسح المنجز</button>' : '');
+      + (tasks.some(t => t.done && !t.daily) ? '<button data-act="clearDone">مسح المنجز</button>' : '');
     body.innerHTML = tasks.map((t, i) => `<div class="item${t.done ? ' done' : ''}">
       <button class="chk" data-tick="${i}">${t.done ? '✓' : ''}</button>
       <div class="t"><div class="rnT">${esc(t.rn || '…')}${t.daily ? ' 🔁' : ''}</div><div class="arT">${esc(t.ar)}</div></div>
       <button data-deltask="${i}" aria-label="حذف">🗑</button></div>`).join('') || '<div class="empty">ما في مهام · Nta bikorwa</div>';
-    foot.innerHTML = '<label class="dl"><input type="checkbox" id="newDaily"> كل يوم</label><input id="newTask" placeholder="مهمة جديدة…"><button data-act="addTask">إضافة</button>';
+    setFoot('<label class="dl"><input type="checkbox" id="newDaily"> كل يوم</label><input id="newTask" placeholder="مهمة جديدة…"><button data-act="addTask">إضافة</button>');
   } else if (panel === 'pics') {
     $('pTitle').textContent = '🧹 أعمال · Imirimo';
     body.innerHTML = '<div class="grid">' + PICS.map((p, i) =>
@@ -286,6 +290,14 @@ function render() {
   }
 }
 
+// translations that failed earlier (no internet) are retried when a list is opened
+async function fillMissing() {
+  let changed = false;
+  for (const x of [...phrases, ...tasks]) {
+    if (!x.rn) { try { x.rn = await translate(x.ar, 'ar', 'rn'); changed = true; } catch (e) {} }
+  }
+  if (changed) { save('phrases', phrases); save('tasks', tasks); render(); }
+}
 async function addPhrase() {
   const ar = $('newPhr').value.trim(); if (!ar) return;
   const p = { ar, rn: '' };
@@ -323,7 +335,7 @@ document.addEventListener('click', e => {
   if (d.act === 'addTask') return addTask();
   if (d.act === 'shareText') return shareText();
   if (d.act === 'sharePdf') return sharePdf();
-  if (d.act === 'clearDone') { tasks = tasks.filter(t => !t.done); save('tasks', tasks); return render(); }
+  if (d.act === 'clearDone') { tasks = tasks.filter(t => !t.done || t.daily); save('tasks', tasks); return render(); }
   if (d.act === 'clearHist') { if (confirm('مسح كل السجل؟')) { history = []; save('history', history); render(); } }
 });
 document.addEventListener('keydown', e => {
@@ -429,6 +441,9 @@ async function sharePdf() {
   } catch (e) {}
 }
 
+// ---------- hardware Back button: close the open panel first ----------
+if (P.App) P.App.addListener('backButton', () => { if (panel) closePanel(); else P.App.exitApp(); });
+
 // ---------- updates ----------
 const APK_URL = 'https://github.com/DrOmaia/Mani/releases/latest/download/Mani.apk';
 (async () => {
@@ -446,11 +461,16 @@ async function update(ev) {
   ev.preventDefault();
   const a = $('upd');
   a.textContent = '⏳ عم ينزّل التحديث…';
+  let f;
   try {
-    const f = await P.Filesystem.downloadFile({ url: APK_URL, path: 'Mani.apk', directory: 'CACHE' });
+    f = await P.Filesystem.downloadFile({ url: APK_URL, path: 'Mani.apk', directory: 'CACHE' });
+  } catch (e) { a.textContent = '⚠️ التحديث ما نزل (ما في إنترنت؟)، اضغطي لتجرّبي مرة ثانية'; return; }
+  try {
     await P.FileOpener.open({ filePath: f.path, contentType: 'application/vnd.android.package-archive' });
     a.textContent = '⬇️ في نسخة جديدة من التطبيق، اضغطي للتحديث';
-  } catch (e) { a.textContent = '⚠️ التحديث ما نزل، اضغطي لتجرّبي مرة ثانية'; }
+  } catch (e) {
+    a.textContent = '⚠️ التحديث نزل، بس ما فتح المثبّت. إذا طلب إذن «تثبيت من مصادر غير معروفة» وافقي، وبعدين اضغطي هون مرة ثانية';
+  }
 }
 </script>
 </body>
