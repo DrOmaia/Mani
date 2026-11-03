@@ -17,3 +17,4 @@
 14. ⚙️ Settings in tabs: 🎨 colours (soft, blue, pink), 🔤 text size (small, medium, large, extra large), 🌙 night mode, 🔄 update (checks the latest version and shows the result, with a download button when there is a new one).
 15. Picture tiles show the Kirundi name under the Arabic one, so the maid can read what is pointed at.
 16. The 🔊 button now reads the Kirundi translation aloud (it used to read the Arabic one).
+17. Kirundi voice built in: on first use the app downloads a Kirundi voice model (Meta MMS, about 60 MB) once, then reads Kirundi offline. Order: phone Kirundi voice, built-in voice, Swahili voice. NOT yet tested on a phone (the model host was unreachable from the build environment).

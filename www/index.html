@@ -221,7 +221,7 @@ async function translate(text, from, to) {
   return res;
 }
 
-let arVoice = null, rnLang = null, noRnNoted = false;
+let arVoice = null;
 // find a female Arabic voice on the phone (voice names say "female" on most Android TTS engines)
 async function pickVoice() {
   if (arVoice !== null || !P.TextToSpeech) return;
@@ -232,17 +232,39 @@ async function pickVoice() {
     arVoice = fem ? fem.i : (ar[0] ? ar[0].i : -1);
   } catch (e) { arVoice = -1; }
 }
-// Kirundi: use it if the phone has it; otherwise Swahili (close enough to read it aloud); otherwise say so once
+// Kirundi voice, in order: (1) the phone has a Kirundi voice; (2) the built-in Meta MMS Kirundi voice,
+// downloaded once on first use and then kept by the phone (works offline); (3) Swahili voice; (4) say so once.
+const KRN_LIB = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1';
+const KRN_MODEL = 'Xenova/mms-tts-run';   // Meta MMS, Kirundi ("run")
+let krnTts = null, krnCtx = null, rnSw = null, noRnNoted = false;
+async function speakKrnModel(text) {
+  if (!krnTts) {
+    const lib = await import(KRN_LIB);
+    krnTts = await lib.pipeline('text-to-speech', KRN_MODEL);
+  }
+  const out = await krnTts(text);
+  krnCtx = krnCtx || new (window.AudioContext || window.webkitAudioContext)();
+  const buf = krnCtx.createBuffer(1, out.audio.length, out.sampling_rate);
+  buf.copyToChannel(out.audio, 0);
+  const src = krnCtx.createBufferSource(); src.buffer = buf; src.connect(krnCtx.destination); src.start();
+}
 async function speakRn(text) {
-  if (!text || !P.TextToSpeech) return;
+  if (!text) return;
   try {
-    if (rnLang === null) {
-      rnLang = '';
-      for (const l of ['rn', 'sw']) { const r = await P.TextToSpeech.isLanguageSupported({ lang: l }); if (r.supported) { rnLang = l; break; } }
+    if (P.TextToSpeech && (await P.TextToSpeech.isLanguageSupported({ lang: 'rn' })).supported) {
+      return await P.TextToSpeech.speak({ text, lang: 'rn', rate: 0.85 });
     }
-    if (rnLang) await P.TextToSpeech.speak({ text, lang: rnLang, rate: 0.85 });
-    else if (!noRnNoted) { noRnNoted = true; $('backAr').textContent = 'ما في صوت بروندي على هالتلفون، بتقدري تقري الترجمة مكتوبة.'; }
   } catch (e) {}
+  if (!load('krn', false) && !confirm('أول مرة بدي أنزّل صوت البروندي (حوالي 60 ميغا، ولازم إنترنت). نكمّل؟')) {
+    // the user said no for now: fall through to Swahili
+  } else {
+    try { await speakKrnModel(text); save('krn', true); return; } catch (e) {}
+  }
+  try {
+    if (rnSw === null && P.TextToSpeech) rnSw = (await P.TextToSpeech.isLanguageSupported({ lang: 'sw' })).supported;
+    if (rnSw) return await P.TextToSpeech.speak({ text, lang: 'sw-TZ', rate: 0.85 });
+  } catch (e) {}
+  if (!noRnNoted) { noRnNoted = true; $('backAr').textContent = 'ما قدرت أقرأ البروندي بالصوت على هالتلفون الآن.'; }
 }
 async function speakAr(text) {
   if (!text) return;
