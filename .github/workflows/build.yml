@@ -67,6 +67,13 @@ jobs:
         if: github.event.inputs.action != 'mark-stable'
         with: { distribution: temurin, java-version: 21 }
       # Kirundi voice (Meta MMS): put inside the app at build time, so the phone never downloads it
+      - name: Find Kirundi voice model (probe)
+        if: github.event.inputs.action != 'mark-stable'
+        continue-on-error: true
+        run: |
+          curl -s "https://huggingface.co/api/models?search=mms-tts-run&limit=50" | python3 -c "import json,sys; [print(m['id']) for m in json.load(sys.stdin)]" || true
+          curl -s "https://huggingface.co/api/models?search=mms-tts-run-onnx&limit=50" | python3 -c "import json,sys; [print(m['id']) for m in json.load(sys.stdin)]" || true
+          curl -s "https://huggingface.co/api/models?search=mms-tts-run&author=Xenova&limit=50" | python3 -c "import json,sys; [print(m['id']) for m in json.load(sys.stdin)]" || true
       - name: Kirundi voice model
         if: github.event.inputs.action != 'mark-stable'
         run: |
