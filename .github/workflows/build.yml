@@ -66,6 +66,17 @@ jobs:
       - uses: actions/setup-java@v4
         if: github.event.inputs.action != 'mark-stable'
         with: { distribution: temurin, java-version: 21 }
+      # Kirundi voice (Meta MMS): put inside the app at build time, so the phone never downloads it
+      - name: Kirundi voice model
+        if: github.event.inputs.action != 'mark-stable'
+        run: |
+          M=www/models/Xenova/mms-tts-run; B=https://huggingface.co/Xenova/mms-tts-run/resolve/main
+          mkdir -p $M/onnx
+          curl -fL --retry 3 $B/config.json -o $M/config.json
+          curl -fL --retry 3 $B/tokenizer.json -o $M/tokenizer.json
+          curl -fL --retry 3 $B/tokenizer_config.json -o $M/tokenizer_config.json
+          curl -fL --retry 3 $B/onnx/model_quantized.onnx -o $M/onnx/model_quantized.onnx
+          ls -la $M $M/onnx
       - name: Build
         if: github.event.inputs.action != 'mark-stable'
         env:

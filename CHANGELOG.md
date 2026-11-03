@@ -18,3 +18,4 @@
 15. Picture tiles show the Kirundi name under the Arabic one, so the maid can read what is pointed at.
 16. The 🔊 button now reads the Kirundi translation aloud (it used to read the Arabic one).
 17. Kirundi voice built in: on first use the app downloads a Kirundi voice model (Meta MMS, about 60 MB) once, then reads Kirundi offline. Order: phone Kirundi voice, built-in voice, Swahili voice. NOT yet tested on a phone (the model host was unreachable from the build environment).
+18. The Kirundi voice model is added to the APK at build time (not downloaded by the phone), so updates keep it. Not yet tested on a phone.

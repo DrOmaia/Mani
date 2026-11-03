@@ -232,15 +232,17 @@ async function pickVoice() {
     arVoice = fem ? fem.i : (ar[0] ? ar[0].i : -1);
   } catch (e) { arVoice = -1; }
 }
-// Kirundi voice, in order: (1) the phone has a Kirundi voice; (2) the built-in Meta MMS Kirundi voice,
-// downloaded once on first use and then kept by the phone (works offline); (3) Swahili voice; (4) say so once.
+// Kirundi voice, in order: (1) the phone has a Kirundi voice; (2) the built-in Meta MMS Kirundi voice
+// (inside the APK, works offline, no download); (3) Swahili voice; (4) say so once.
 const KRN_LIB = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1';
-const KRN_MODEL = 'Xenova/mms-tts-run';   // Meta MMS, Kirundi ("run")
+const KRN_MODEL = 'Xenova/mms-tts-run';   // Meta MMS, Kirundi ("run"); the files are inside the app (added at build time)
 let krnTts = null, krnCtx = null, rnSw = null, noRnNoted = false;
 async function speakKrnModel(text) {
   if (!krnTts) {
     const lib = await import(KRN_LIB);
-    krnTts = await lib.pipeline('text-to-speech', KRN_MODEL);
+    lib.env.allowRemoteModels = false;      // never download: the voice is inside the APK
+    lib.env.localModelPath = 'models/';
+    krnTts = await lib.pipeline('text-to-speech', KRN_MODEL, { dtype: 'q8' });
   }
   const out = await krnTts(text);
   krnCtx = krnCtx || new (window.AudioContext || window.webkitAudioContext)();
@@ -255,11 +257,7 @@ async function speakRn(text) {
       return await P.TextToSpeech.speak({ text, lang: 'rn', rate: 0.85 });
     }
   } catch (e) {}
-  if (!load('krn', false) && !confirm('أول مرة بدي أنزّل صوت البروندي (حوالي 60 ميغا، ولازم إنترنت). نكمّل؟')) {
-    // the user said no for now: fall through to Swahili
-  } else {
-    try { await speakKrnModel(text); save('krn', true); return; } catch (e) {}
-  }
+  try { await speakKrnModel(text); return; } catch (e) {}
   try {
     if (rnSw === null && P.TextToSpeech) rnSw = (await P.TextToSpeech.isLanguageSupported({ lang: 'sw' })).supported;
     if (rnSw) return await P.TextToSpeech.speak({ text, lang: 'sw-TZ', rate: 0.85 });
