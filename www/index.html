@@ -235,7 +235,7 @@ async function pickVoice() {
 // Kirundi voice, in order: (1) the phone has a Kirundi voice; (2) the built-in Meta MMS Kirundi voice
 // (inside the APK, works offline, no download); (3) Swahili voice; (4) say so once.
 const KRN_LIB = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1';
-const KRN_MODEL = 'Xenova/mms-tts-run';   // Meta MMS, Kirundi ("run"); the files are inside the app (added at build time)
+const KRN_MODEL = 'Francis-Real/mms-tts-run-onnx';   // Meta MMS, Kirundi ("run"); the files are inside the app (added at build time)
 let krnTts = null, krnCtx = null, rnSw = null, noRnNoted = false;
 async function speakKrnModel(text) {
   if (!krnTts) {

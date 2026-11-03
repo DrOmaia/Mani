@@ -66,24 +66,25 @@ jobs:
       - uses: actions/setup-java@v4
         if: github.event.inputs.action != 'mark-stable'
         with: { distribution: temurin, java-version: 21 }
-      # Kirundi voice (Meta MMS): put inside the app at build time, so the phone never downloads it
-      - name: Find Kirundi voice model (probe)
-        if: github.event.inputs.action != 'mark-stable'
-        continue-on-error: true
-        run: |
-          curl -s "https://huggingface.co/api/models?search=mms-tts-run&limit=50" | python3 -c "import json,sys; [print(m['id']) for m in json.load(sys.stdin)]" || true
-          curl -s "https://huggingface.co/api/models?search=mms-tts-run-onnx&limit=50" | python3 -c "import json,sys; [print(m['id']) for m in json.load(sys.stdin)]" || true
-          curl -s "https://huggingface.co/api/models?search=mms-tts-run&author=Xenova&limit=50" | python3 -c "import json,sys; [print(m['id']) for m in json.load(sys.stdin)]" || true
+      # Kirundi voice (Meta MMS, ONNX build by Francis-Real): copied into the app at build time (no phone download)
       - name: Kirundi voice model
         if: github.event.inputs.action != 'mark-stable'
         run: |
-          M=www/models/Xenova/mms-tts-run; B=https://huggingface.co/Xenova/mms-tts-run/resolve/main
-          mkdir -p $M/onnx
-          curl -fL --retry 3 $B/config.json -o $M/config.json
-          curl -fL --retry 3 $B/tokenizer.json -o $M/tokenizer.json
-          curl -fL --retry 3 $B/tokenizer_config.json -o $M/tokenizer_config.json
-          curl -fL --retry 3 $B/onnx/model_quantized.onnx -o $M/onnx/model_quantized.onnx
-          ls -la $M $M/onnx
+          python3 - <<'PY'
+          import json, os, urllib.request
+          repo = "Francis-Real/mms-tts-run-onnx"
+          info = json.load(urllib.request.urlopen(f"https://huggingface.co/api/models/{repo}"))
+          files = [s["rfilename"] for s in info.get("siblings", [])]
+          print("files in repo:", files)
+          dest = os.path.join("www/models", repo)
+          for f in files:
+              if f.startswith(".") or f.endswith((".md", ".gitattributes")):
+                  continue
+              out = os.path.join(dest, f)
+              os.makedirs(os.path.dirname(out), exist_ok=True)
+              urllib.request.urlretrieve(f"https://huggingface.co/{repo}/resolve/main/{f}", out)
+              print("saved", out, os.path.getsize(out))
+          PY
       - name: Build
         if: github.event.inputs.action != 'mark-stable'
         env:
