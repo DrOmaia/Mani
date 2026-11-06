@@ -23,6 +23,8 @@
     font-size:24px; line-height:1.5; min-height:60px; }
   .out:empty::before { content:attr(data-hint); color:var(--mut); font-size:16px; }
   .back { font-size:14px; color:var(--mut); min-height:1em; }
+  .shr { display:flex; justify-content:flex-end; }
+  .shr button { min-width:0; font-size:15px; padding:6px 12px; background:#25d366; color:#fff; }
   .row { display:flex; gap:8px; }
   textarea { flex:1; font:inherit; font-size:18px; border:1px solid var(--line); border-radius:12px;
     padding:10px; resize:none; height:60px; background:var(--card); color:var(--ink); }
@@ -132,8 +134,10 @@
     <div class="lbl">Ikirundi</div>
     <div class="out" id="outRn" data-hint="Ubusobanuro buzoboneka hano"></div>
     <div class="back" id="backRn"></div>
+    <div class="shr"><button data-share="rn" aria-label="share">📤 واتساب</button></div>
     <div class="row">
       <textarea id="inRn" placeholder="Andika hano…"></textarea>
+      <button id="pasteRn" class="alt" aria-label="Shyiramo">📋</button>
       <button id="micSw" class="alt" aria-label="Kiswahili">🎤</button>
       <button id="goRn" aria-label="Sobanura">➜</button>
     </div>
@@ -145,8 +149,10 @@
     <div class="lbl">العربي</div>
     <div class="out" id="outAr" data-hint="الترجمة بتطلع هون"></div>
     <div class="back" id="backAr"></div>
+    <div class="shr"><button data-share="ar" aria-label="share">📤 واتساب</button></div>
     <div class="row">
       <textarea id="inAr" placeholder="اكتبي هون…"></textarea>
+      <button id="pasteAr" class="alt" aria-label="الصقي">📋</button>
       <button id="micAr" class="alt" aria-label="تكلّمي">🎤</button>
       <button id="goAr" aria-label="ترجمي">➜</button>
     </div>
@@ -480,6 +486,35 @@ document.addEventListener('keydown', e => {
 });
 
 $('chipsRn').innerHTML = CHIPS_RN.map((c, i) => `<button data-chip="${i}">${esc(c[0])}</button>`).join('');
+// paste from WhatsApp: the translation starts by itself; share a translation back to WhatsApp
+const PASTE_HINT = { ar: 'اضغطي ضغطة طويلة على الخانة واختاري «لصق»، وبتنترجم لحالها.',
+                     rn: 'Kanda igihe kirekire mu gasanduku, uhitemo «Shyiramo»; bizahindurwa ubwabyo.' };
+async function pasteInto(side) {
+  const inp = $(side === 'ar' ? 'inAr' : 'inRn');
+  try {
+    const t = await navigator.clipboard.readText();
+    if (t && t.trim()) { inp.value = t; return go(side); }
+  } catch (e) {}
+  inp.focus(); alert(PASTE_HINT[side]);
+}
+['ar', 'rn'].forEach(side => {
+  const inp = $(side === 'ar' ? 'inAr' : 'inRn');
+  inp.addEventListener('paste', () => setTimeout(() => go(side), 80));   // long-press paste also translates
+  $(side === 'ar' ? 'pasteAr' : 'pasteRn').onclick = () => pasteInto(side);
+});
+async function shareWa(text) {
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); } catch (e) {}
+  try {
+    if (P.Share) return await P.Share.share({ text });
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  } catch (e) {}
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-share]'); if (!b) return;
+  shareWa($(b.dataset.share === 'ar' ? 'outAr' : 'outRn').textContent);
+});
+
 $('goAr').onclick = () => go('ar');
 $('goRn').onclick = () => go('rn');
 $('micAr').onclick = () => listen('ar-SA', t => go('ar', t));
