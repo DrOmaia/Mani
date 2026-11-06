@@ -455,17 +455,18 @@ async function sayPhrase(i) {
 }
 
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask],[data-pic],[data-qr],[data-chip],[data-set],[data-fs],[data-stab],[data-pal]');
+  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask],[data-pic],[data-qr],[data-chip],[data-set],[data-fs],[data-stab],[data-pal],[data-slang]');
   if (!b) return;
   const d = b.dataset;
   if (d.open) return openPanel(d.open);
   if (d.stab) { setTab = d.stab; return render(); }
+  if (d.slang) { setupLang = d.slang; return render(); }
   if (d.pal) { applyPalette(d.pal); return render(); }
   if (d.act === 'checkUpd') return checkUpd();
   if (d.act === 'getUpd') { if (P.Filesystem) return update(null); return location.href = APK_URL; }
   if (d.set === 'night') { const on = document.body.classList.toggle('night'); save('night', on); return render(); }
   if (d.fs) { ['s', 'm', 'l', 'xl'].forEach(k => document.body.classList.remove('fs-' + k)); document.body.classList.add('fs-' + d.fs); save('fs', d.fs); return render(); }
-  if (d.qr != null) { const t = QR_AR[+d.qr][1]; closePanel(); return go('ar', t); }
+  if (d.qr != null) { const i = +d.qr; closePanel(); go('ar', QR_AR[i][1]); if (i === 6 && fam && fam.me) famSend('all', '🔔', true).catch(() => {}); return; }
   if (d.chip != null) return go('rn', CHIPS_RN[+d.chip][0]);
   if (d.pic != null) { const ar = PICS[+d.pic][1]; closePanel(); return go('ar', ar); }
   if (d.delphr != null) { if (confirm('حذف الجملة؟')) { phrases.splice(+d.delphr, 1); save('phrases', phrases); render(); } return; }
@@ -612,16 +613,30 @@ async function sharePdf() {
   } catch (e) {}
 }
 
+// the version to offer: the one the owner marked stable (file STABLE), else the newest build
+async function targetRelease() {
+  let tag = '';
+  try { tag = (await (await fetch('https://raw.githubusercontent.com/DrOmaia/Mani/main/STABLE', { cache: 'no-store' })).text()).trim(); } catch (e) {}
+  if (/^v\d+$/.test(tag)) {
+    try {
+      const j = await (await fetch('https://api.github.com/repos/DrOmaia/Mani/releases/tags/' + tag)).json();
+      const n = parseInt(String(j.tag_name || '').replace('v', ''), 10);
+      if (n) return { n, apk: 'https://github.com/DrOmaia/Mani/releases/download/' + tag + '/Mani.apk', stable: true };
+    } catch (e) {}
+  }
+  const j = await (await fetch('https://api.github.com/repos/DrOmaia/Mani/releases/latest')).json();
+  return { n: parseInt(String(j.tag_name || '').replace('v', ''), 10), apk: APK_URL, stable: false };
+}
 // settings: check for a newer version and report it
 async function checkUpd() {
   const m = $('updMsg'); m.textContent = '⏳ عم أفحص…';
   try {
-    const j = await (await fetch('https://api.github.com/repos/DrOmaia/Mani/releases/latest')).json();
-    const n = parseInt(String(j.tag_name || '').replace('v', ''), 10);
+    const t = await targetRelease();
+    const n = t.n;
     if (!n) throw new Error('no version');
     const cur = window.MANI_VERSION || 0;
     lastNewer = n > cur ? n : 0;
-    m.textContent = n > cur ? `في نسخة جديدة (v${n}). نسختك: ${cur ? 'v' + cur : 'تجريبية'}` : `عندك آخر نسخة ✓ (v${cur})`;
+    m.textContent = n > cur ? `في نسخة جديدة (v${n}${t.stable ? ' ✓ مستقرة' : ''}). نسختك: ${cur ? 'v' + cur : 'تجريبية'}` : `عندك آخر نسخة ✓ (v${cur})`;
     $('getUpd').hidden = !lastNewer;
   } catch (e) { m.textContent = '⚠️ ما قدرت أفحص. تأكدي من الإنترنت وجرّبي مرة ثانية.'; }
 }
@@ -633,26 +648,26 @@ const FT = {
     start:'ابدئي', language:'اللغة', copyCode:'انسخي الكود', newCode:'كود جديد', testRing:'جرّبي الرنين', changeWho:'تغيير الاسم',
     empty:'ما في رسائل بعد', ringSent:'تم إرسال التنبيه', sendFail:'ما انبعتت، تأكدي من الإنترنت', copied:'تم النسخ',
     ringFrom:'يرن عليكِ', quick:['جاية','بعد شوي','ما بقدر','أحتاج مساعدة'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
-    roleTitle:'اختاري اسمك', settingsTitle:'الإعدادات', ringBack:['جاية','بعد شوي','ما بقدر'], ringOk:'وصلني' },
+    roleTitle:'اختاري اسمك', codeShort:'الكود لازم يكون 12 حرف على الأقل، حتى يكون آمن.', settingsTitle:'الإعدادات', ringBack:['جاية','بعد شوي','ما بقدر'], ringOk:'وصلني' },
   rn: { family:'Umuryango', chats:'Ibiganiro', back:'‹ Subira inyuma', settings:'⚙️', send:'Ohereza', ring:'🔔 Hamagara', writeHere:'Andika ubutumwa…',
     welcome:'Murakaza neza', whoAreYou:'Ni nde?', code:"Kode y'umuryango", codeHint:"Kode imwe ku bantu bose b'umuryango.",
     start:'Tangira', language:'Ururimi', copyCode:'Koporora kode', newCode:'Kode nshya', testRing:'Gerageza ihamagara', changeWho:'Hindura izina',
     empty:"Nta butumwa", ringSent:'Ihamagara ryoherejwe', sendFail:"Ntibyoherejwe, reba interineti", copied:'Byakoporowe',
     ringFrom:'Akurahamagaye', quick:['Ndaje','Umwanya muto','Sinshoboye','Ndakeneye ubufasha'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
-    roleTitle:'Hitamo izina ryawe', settingsTitle:'Igenamiterere', ringBack:['Ndaje','Umwanya muto','Sinshoboye'], ringOk:'Narabyumvise' },
+    roleTitle:'Hitamo izina ryawe', codeShort:'Kode igomba kuba nibura inyuguti 12.', settingsTitle:'Igenamiterere', ringBack:['Ndaje','Umwanya muto','Sinshoboye'], ringOk:'Narabyumvise' },
   en: { family:'Family', chats:'Chats', back:'‹ Back', settings:'⚙️', send:'Send', ring:'🔔 Call', writeHere:'Type a message…',
     welcome:'Welcome', whoAreYou:'Who are you?', code:'Family code', codeHint:'The same code on every family phone. If you are first, keep it and share it.',
     start:'Start', language:'Language', copyCode:'Copy code', newCode:'New code', testRing:'Test the ring', changeWho:'Change name',
     empty:'No messages yet', ringSent:'Ring sent', sendFail:'Not sent, check the internet', copied:'Copied',
     ringFrom:'is calling you', quick:['Coming','In a moment','Cannot','I need help'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
-    roleTitle:'Choose your name', settingsTitle:'Settings', ringBack:['Coming','In a moment','Cannot'], ringOk:'Got it' }
+    roleTitle:'Choose your name', codeShort:'The code must be at least 12 characters, to be safe.', settingsTitle:'Settings', ringBack:['Coming','In a moment','Cannot'], ringOk:'Got it' }
 };
 const LANG_NAMES = { ar:'العربية', rn:'Ikirundi', en:'English' };
 let fam = load('fam', null);            // {me, code, lang}
 let famMsgs = load('famMsgs', []);      // [{id, f, t, x, r, at, mine}]
 let famRead = load('famRead', {});      // thread -> last read time
 let famUi = { thread: null, settings: false };
-let famES = null, ringTimer = null, ringCtx = null;
+let famES = null, ringTimer = null, ringVib = null, ringCtx = null;
 const famT = () => FT[(fam && fam.lang) || 'ar'];
 const famName = r => famT().roles[r] || r;
 const ROLES = ['mom','dad','k1','k2','k3','maid'];
@@ -708,19 +723,33 @@ function ringAlert(m) {
   btns.dataset.from = m.f;
   stopRing(); startRing();
 }
-function startRing() {
+// the phone allows sound only after a tap: every tap in the app unlocks it
+function unlockAudio() {
   try {
     ringCtx = ringCtx || new (window.AudioContext || window.webkitAudioContext)();
-    ringTimer = setInterval(() => {
+    if (ringCtx.state === 'suspended') ringCtx.resume();
+  } catch (e) {}
+}
+document.addEventListener('pointerdown', unlockAudio, true);
+function startRing() {
+  stopRing(); unlockAudio();
+  ringTimer = setInterval(() => {
+    try {
       const o = ringCtx.createOscillator(), g = ringCtx.createGain();
       o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.25;
       o.connect(g); g.connect(ringCtx.destination); o.start(); o.stop(ringCtx.currentTime + 0.35);
-    }, 700);
-  } catch (e) {}
-  if (navigator.vibrate) ringTimer = ringTimer || setInterval(() => navigator.vibrate([400, 200, 400]), 1200);
-  if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
+    } catch (e) {}
+  }, 700);
+  if (navigator.vibrate) {
+    navigator.vibrate([400, 200, 400]);
+    ringVib = setInterval(() => navigator.vibrate([400, 200, 400]), 1200);
+  }
 }
-function stopRing() { if (ringTimer) clearInterval(ringTimer); ringTimer = null; if (navigator.vibrate) navigator.vibrate(0); }
+function stopRing() {
+  if (ringTimer) clearInterval(ringTimer); ringTimer = null;
+  if (ringVib) clearInterval(ringVib); ringVib = null;
+  if (navigator.vibrate) navigator.vibrate(0);
+}
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-rq]'); if (!b) return;
   const from = $('rgBtns').dataset.from, idx = b.dataset.rq;
@@ -736,12 +765,14 @@ function renderFam() {
   if (famUi.thread === null) return famList(body, foot, tools);
   return famChat(body, foot, tools);
 }
+let setupLang = 'ar';
 function famSetup(body) {
-  $('pTitle').textContent = '👨‍👩‍👧 ' + FT.ar.family;
-  const lang = (fam && fam.lang) || 'ar';
+  const lang = (fam && fam.lang) || setupLang;
   const T = FT[lang];
+  $('pTitle').textContent = '👨‍👩‍👧 ' + T.family;
   const code = (fam && fam.code) || randCode();
   body.innerHTML = `<div class="fSet">
+    <div class="tabs">${['ar','rn','en'].map(l => `<button data-slang="${l}" class="${lang === l ? 'on' : ''}">${LANG_NAMES[l]}</button>`).join('')}</div>
     <div><b>${esc(T.welcome)}</b></div>
     <div>${esc(T.roleTitle)}</div>
     <div class="fRoles">${ROLES.map(r => `<button data-role="${r}">${esc(T.roles[r])}</button>`).join('')}</div>
@@ -755,8 +786,9 @@ function famSetup(body) {
   body.querySelectorAll('[data-role]').forEach(b => b.onclick = () => { body.dataset.role = b.dataset.role; body.querySelectorAll('[data-role]').forEach(x => x.classList.toggle('on', x === b)); });
   $('famStart').onclick = () => {
     const role = body.dataset.role, c = $('famCode').value.trim();
-    if (!role || c.length < 6) { alert(FT[lang].roleTitle); return; }
-    fam = { me: role, code: c, lang: fam && fam.lang ? fam.lang : (role === 'maid' ? 'rn' : 'ar') };
+    if (!role) { alert(T.roleTitle); return; }
+    if (c.length < 12) { alert(T.codeShort); return; }
+    fam = { me: role, code: c, lang };
     famSave(); famConnect(); render();
   };
 }
@@ -844,9 +876,8 @@ const APK_URL = 'https://github.com/DrOmaia/Mani/releases/latest/download/Mani.a
   // the update file of the last update is not needed once the app has started again: remove it
   try { if (P.Filesystem) await P.Filesystem.deleteFile({ path: 'Mani.apk', directory: 'CACHE' }); } catch (e) {}
   try {
-    const r = await fetch('https://api.github.com/repos/DrOmaia/Mani/releases/latest');
-    const n = parseInt(((await r.json()).tag_name || '').replace('v', ''), 10);
-    if (window.MANI_VERSION && n > window.MANI_VERSION) $('upd').hidden = false;
+    const t = await targetRelease();
+    if (window.MANI_VERSION && t.n > window.MANI_VERSION) $('upd').hidden = false;
   } catch (e) {}
 })();
 // download into the app's own cache (not Downloads), then open the installer
@@ -855,9 +886,10 @@ async function update(ev) {
   if (ev) ev.preventDefault();
   const a = $('upd'); a.hidden = false;
   a.textContent = '⏳ عم ينزّل التحديث…';
-  let f;
+  let f, apk = APK_URL;
+  try { apk = (await targetRelease()).apk; } catch (e) {}
   try {
-    f = await P.Filesystem.downloadFile({ url: APK_URL, path: 'Mani.apk', directory: 'CACHE' });
+    f = await P.Filesystem.downloadFile({ url: apk, path: 'Mani.apk', directory: 'CACHE' });
   } catch (e) { a.textContent = '⚠️ التحديث ما نزل (ما في إنترنت؟)، اضغطي لتجرّبي مرة ثانية'; return; }
   try {
     await P.FileOpener.open({ filePath: f.path, contentType: 'application/vnd.android.package-archive' });
