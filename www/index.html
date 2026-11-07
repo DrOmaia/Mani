@@ -10,10 +10,11 @@
   /* keep everything clear of the phone's status bar (top) and navigation bar (bottom) */
   :root { --sat: max(env(safe-area-inset-top, 0px), 28px); --sab: max(env(safe-area-inset-bottom, 0px), 24px);
     --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px); }
-  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+  html { margin:0; height:100%; background:var(--bg); }
+  body { margin:0; height:100%; background:var(--bg); color:var(--ink);
     padding:var(--sat) var(--sar) var(--sab) var(--sal);
-    font-family:system-ui,"Noto Sans Arabic",sans-serif; }
-  body { display:flex; flex-direction:column; }
+    font-family:system-ui,"Noto Sans Arabic",sans-serif; display:flex; flex-direction:column; }
+  [hidden] { display:none !important; }
   .half { flex:1; display:flex; flex-direction:column; gap:8px; padding:10px 16px; min-height:0; }
   .rn { transform:rotate(180deg); border-bottom:2px dashed var(--line); }
   body.flat .rn { transform:none; }
@@ -33,7 +34,7 @@
   button.alt { background:var(--btn) !important; color:var(--ink); }
   button:disabled { opacity:.5; }
   .bar { display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 10px; }
-  .bar button { flex:1 1 22%; min-height:48px; background:var(--btn); color:var(--ink); font-size:15px; padding:6px 2px; min-width:0; }
+  .bar button { flex:1 1 22%; min-height:48px; background:var(--btn); color:var(--ink); font-size:calc(15px * var(--fs,1)); padding:6px 2px; min-width:0; }
   #upd { display:block; background:var(--ar); color:#fff; text-align:center; padding:10px; font-size:16px; text-decoration:none; }
   #upd[hidden] { display:none; }
   /* panels */
@@ -62,7 +63,7 @@
   .dl { display:flex; align-items:center; gap:4px; font-size:14px; color:var(--mut); white-space:nowrap; }
   .dl input { width:18px; height:18px; }
   .chips { display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
-  .chips button { background:var(--rn); font-size:15px; padding:8px 12px; white-space:nowrap; min-width:0; }
+  .chips button { background:var(--rn); font-size:calc(15px * var(--fs,1)); padding:8px 12px; white-space:nowrap; min-width:0; }
   .tile.big span { font-size:56px; }
   .tile.pic { min-height:130px; }
   .tile .rnS { font-size:15px; color:var(--rn); font-weight:700; direction:ltr; }
@@ -99,12 +100,13 @@
   .fRow .fP { color:var(--mut); font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .fBadge { background:var(--rn); color:#fff; border-radius:999px; padding:2px 9px; font-size:13px; min-width:24px; text-align:center; }
   .fChat { display:flex; flex-direction:column; gap:8px; padding:10px 12px; }
-  .bub { max-width:78%; padding:9px 12px; border-radius:14px; font-size:18px; line-height:1.5; background:var(--card); overflow-wrap:anywhere; box-shadow:0 1px 1px rgba(0,0,0,.06); }
+  .bub { max-width:78%; padding:9px 12px; border-radius:14px; font-size:calc(18px * var(--fs,1)); line-height:1.5; background:var(--card); overflow-wrap:anywhere; box-shadow:0 1px 1px rgba(0,0,0,.06); }
   .bub.me { align-self:flex-end; background:#dcefe9; }
+  body.night .bub.me { background:#2f4a44; }
   .bub.ring { border:2px solid var(--rn); }
   .bub small { display:block; color:var(--mut); font-size:12px; margin-top:4px; }
   .fQuick { display:flex; gap:6px; overflow-x:auto; padding:6px 12px 0; }
-  .fQuick button { background:var(--btn); color:var(--ink); font-size:15px; padding:8px 12px; white-space:nowrap; min-width:0; }
+  .fQuick button { background:var(--btn); color:var(--ink); font-size:calc(15px * var(--fs,1)); padding:8px 12px; white-space:nowrap; min-width:0; }
   .fIn { display:flex; gap:6px; align-items:center; padding:10px 12px; border-top:1px solid var(--line); background:var(--card); }
   .fIn input { flex:1; min-width:0; font:inherit; font-size:17px; padding:10px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); }
   .fIn button { min-width:46px; min-height:46px; padding:0; font-size:20px; }
@@ -187,7 +189,10 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 // ---------- storage (every read / write guarded) ----------
 function load(k, d) { try { const v = JSON.parse(localStorage.getItem('mani-' + k)); return v == null ? d : v; } catch (e) { return d; } }
-function save(k, v) { try { localStorage.setItem('mani-' + k, JSON.stringify(v)); } catch (e) {} }
+function save(k, v) {
+  try { localStorage.setItem('mani-' + k, JSON.stringify(v)); }
+  catch (e) { if (!save.warned) { save.warned = true; alert('⚠️ مخزن التطبيق امتلأ: امسحي السجل من 🕘 حتى تنحفظ الأشياء الجديدة.'); } }
+}
 
 const DEFAULT_PHRASES = [
   'صباح الخير', 'كيف حالِك؟', 'شكراً كثير', 'نظّفي المطبخ', 'حضّري الغدا', 'اغسلي الصحون',
@@ -215,9 +220,11 @@ let tasks = load('tasks', []);            // [{ar, rn, done, daily}]
 // quick replies: maid side (Kirundi, tapped on the top half) and Arabic side (her tiles)
 const CHIPS_RN = [['Yego', 'نعم'], ['Oya', 'لا'], ['Murakoze', 'شكراً'], ['Ntabwo numvise', 'ما فهمت'],
   ['Ndarwaye', 'أنا تعبانة'], ['Ndashonje', 'أنا جوعانة'], ['Ndakeneye ubufasha', 'أحتاج مساعدة']];
+// [emoji, Arabic, Kirundi] — the Kirundi was written by the app's author: have the maid check it
 const QR_AR = [
-  ['💬', 'نعم؟ شو بدك؟'], ['🤒', 'هل إنتِ تعبانة؟'], ['🍽️', 'هل إنتِ جوعانة؟'], ['📍', 'وين الموضوع؟'],
-  ['🐢', 'عيدي الكلام ببطء لو سمحتِ'], ['🙏', 'شكراً كثير'], ['🚨', 'خطر! اطلبي المساعدة فوراً']
+  ['💬', 'نعم؟ شو بدك؟', 'Yego? Ushaka iki?'], ['🤒', 'هل إنتِ تعبانة؟', 'Urarwaye?'], ['🍽️', 'هل إنتِ جوعانة؟', 'Urashonje?'],
+  ['📍', 'وين الموضوع؟', 'Biri hehe?'], ['🐢', 'عيدي الكلام ببطء لو سمحتِ', 'Subiramo buhoro, ndakwinginze'],
+  ['🙏', 'شكراً كثير', 'Murakoze cane'], ['🚨', 'خطر! اطلبي المساعدة فوراً', 'Akaga! Saba ubufasha ubu nyene']
 ];
 const ICONS = ["<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"10\" y=\"20\" width=\"44\" height=\"28\" rx=\"6\" fill=\"#facc15\" stroke=\"#0f766e\" stroke-width=\"3\"/><rect x=\"10\" y=\"20\" width=\"44\" height=\"8\" rx=\"4\" fill=\"#0f766e\"/><circle cx=\"22\" cy=\"36\" r=\"2.5\" fill=\"#0f766e\"/><circle cx=\"34\" cy=\"40\" r=\"2.5\" fill=\"#0f766e\"/><circle cx=\"44\" cy=\"34\" r=\"2.5\" fill=\"#0f766e\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"30\" cy=\"34\" r=\"20\" fill=\"#fff\" stroke=\"#0f766e\" stroke-width=\"3\"/><circle cx=\"30\" cy=\"34\" r=\"12\" fill=\"none\" stroke=\"#0f766e\" stroke-width=\"2\"/><path d=\"M54 8v52M50 8v14a4 4 0 0 0 8 0V8\" fill=\"none\" stroke=\"#b45309\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"8\" y=\"6\" width=\"48\" height=\"52\" rx=\"6\" fill=\"#fff\" stroke=\"#0f766e\" stroke-width=\"3\"/><rect x=\"8\" y=\"6\" width=\"48\" height=\"12\" rx=\"4\" fill=\"#0f766e\"/><circle cx=\"32\" cy=\"38\" r=\"12\" fill=\"#bae6fd\" stroke=\"#0f766e\" stroke-width=\"3\"/><circle cx=\"16\" cy=\"13\" r=\"2\" fill=\"#fff\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4 12h56\" stroke=\"#0f766e\" stroke-width=\"3\" stroke-linecap=\"round\"/><path d=\"M14 12v4M50 12v4\" stroke=\"#0f766e\" stroke-width=\"2\"/><path d=\"M20 16l-6 4 3 8 4-2v22h18V26l4 2 3-8-6-4c-2 3-6 4-9 4s-7-1-9-4z\" fill=\"#fff\" stroke=\"#b45309\" stroke-width=\"3\" stroke-linejoin=\"round\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M40 4L24 36\" stroke=\"#b45309\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M14 36h28l4 16H10z\" fill=\"#fff\" stroke=\"#0f766e\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path d=\"M18 44v6M24 44v6M30 44v6M36 44v6\" stroke=\"#0f766e\" stroke-width=\"2\"/><path d=\"M6 58h52\" stroke=\"#94a3b8\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"16\" y=\"6\" width=\"32\" height=\"18\" rx=\"4\" fill=\"#fff\" stroke=\"#0f766e\" stroke-width=\"3\"/><path d=\"M10 28h44v10c0 10-6 16-22 16S10 48 10 38z\" fill=\"#fff\" stroke=\"#0f766e\" stroke-width=\"3\"/><ellipse cx=\"32\" cy=\"30\" rx=\"20\" ry=\"5\" fill=\"#bae6fd\" stroke=\"#0f766e\" stroke-width=\"2\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"10\" y=\"20\" width=\"44\" height=\"6\" rx=\"3\" fill=\"#0f766e\"/><path d=\"M14 26l4 32h28l4-32z\" fill=\"#fff\" stroke=\"#0f766e\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path d=\"M24 32v22M32 32v22M40 32v22\" stroke=\"#0f766e\" stroke-width=\"2\"/><path d=\"M24 14h16\" stroke=\"#b45309\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 30h44v14c0 8-6 12-22 12S10 52 10 44z\" fill=\"#fff\" stroke=\"#0f766e\" stroke-width=\"3\" stroke-linejoin=\"round\"/><rect x=\"6\" y=\"26\" width=\"52\" height=\"5\" rx=\"2.5\" fill=\"#0f766e\"/><path d=\"M22 18c-3-4 3-6 0-10M32 18c-3-4 3-6 0-10M42 18c-3-4 3-6 0-10\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M6 44c0-10 8-16 22-16h10c10 0 20 4 20 14v4H6z\" fill=\"#fff\" stroke=\"#0f766e\" stroke-width=\"3\" stroke-linejoin=\"round\"/><rect x=\"6\" y=\"46\" width=\"52\" height=\"6\" rx=\"3\" fill=\"#0f766e\"/><path d=\"M20 12c-3 3 3 5 0 9M32 10c-3 3 3 5 0 9\" fill=\"none\" stroke=\"#94a3b8\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"6\" y=\"28\" width=\"52\" height=\"20\" rx=\"3\" fill=\"#fff\" stroke=\"#0f766e\" stroke-width=\"3\"/><rect x=\"6\" y=\"14\" width=\"6\" height=\"34\" rx=\"2\" fill=\"#0f766e\"/><rect x=\"14\" y=\"20\" width=\"16\" height=\"10\" rx=\"4\" fill=\"#bae6fd\" stroke=\"#0f766e\" stroke-width=\"2\"/><path d=\"M34 34h22v6H34z\" fill=\"#b45309\" opacity=\".6\"/><path d=\"M6 52v4M58 52v4\" stroke=\"#0f766e\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4 10h10l8 32h26l6-22H18\" fill=\"none\" stroke=\"#0f766e\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M18 22h38l-6 14H22z\" fill=\"#fef3c7\" stroke=\"#b45309\" stroke-width=\"3\" stroke-linejoin=\"round\"/><circle cx=\"24\" cy=\"52\" r=\"4\" fill=\"#0f766e\"/><circle cx=\"48\" cy=\"52\" r=\"4\" fill=\"#0f766e\"/></svg>", "<svg viewBox=\"0 0 64 64\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M36 6a20 20 0 1 0 22 26A16 16 0 0 1 36 6z\" fill=\"#fde68a\" stroke=\"#b45309\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path d=\"M8 52h12l-12 10h12\" fill=\"none\" stroke=\"#0f766e\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path d=\"M26 40h8l-8 8h8\" fill=\"none\" stroke=\"#0f766e\" stroke-width=\"2.5\" stroke-linejoin=\"round\"/></svg>"];
 // picture tiles for the maid: emoji + Arabic text (she sees the Kirundi on top)
@@ -257,10 +264,12 @@ async function translate(text, from, to) {
   if (cache[k]) return cache[k];
   const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&dt=t'
     + '&sl=' + from + '&tl=' + to + '&q=' + encodeURIComponent(text);
-  const r = await fetch(url);
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 12000);   // never hang the app on a slow network
+  let r;
+  try { r = await fetch(url, { signal: ac.signal }); } finally { clearTimeout(tm); }
   if (!r.ok) throw new Error(r.status);
-  const j = await r.json();
-  const res = j[0].map(p => p[0]).join('');
+  let res;
+  try { const j = await r.json(); res = j[0].map(p => p[0]).join(''); } catch (e) { throw new Error('502'); }
   cache[k] = res; save('cache', cache);
   return res;
 }
@@ -278,15 +287,22 @@ async function pickVoice() {
 }
 // Kirundi voice, in order: (1) the phone has a Kirundi voice; (2) the built-in Meta MMS Kirundi voice
 // (inside the APK, works offline, no download); (3) Swahili voice; (4) say so once.
-const KRN_LIB = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1';
+const KRN_LIB = './vendor/tfjs/transformers.min.js';   // copied into the app at build time (see build.yml)
 const KRN_MODEL = 'Francis-Real/mms-tts-run-onnx';   // Meta MMS, Kirundi ("run"); the files are inside the app (added at build time)
 let krnTts = null, krnCtx = null, rnSw = null, noRnNoted = false;
 async function speakKrnModel(text) {
   if (!krnTts) {
-    const lib = await import(KRN_LIB);
-    lib.env.allowRemoteModels = false;      // never download: the voice is inside the APK
-    lib.env.localModelPath = 'models/';
-    krnTts = await lib.pipeline('text-to-speech', KRN_MODEL, { dtype: 'q8' });
+    const note = { ar: '⏳ عم يجهّز صوت البروندي (أول مرة بس)…', rn: '⏳ Gutegura ijwi (ubwa mbere gusa)…' };
+    $('backAr').textContent = note.ar; $('backRn').textContent = note.rn;
+    try {
+      const lib = await import(KRN_LIB);
+      lib.env.allowRemoteModels = false;      // never download: the voice is inside the APK
+      lib.env.allowLocalModels = true;
+      lib.env.localModelPath = 'models/';
+      lib.env.backends.onnx.wasm.wasmPaths = new URL('vendor/ort/', location.href).href;
+      lib.env.backends.onnx.wasm.numThreads = 1;
+      krnTts = await lib.pipeline('text-to-speech', KRN_MODEL, { dtype: 'q8' });
+    } finally { $('backAr').textContent = ''; $('backRn').textContent = ''; }
   }
   const out = await krnTts(text);
   krnCtx = krnCtx || new (window.AudioContext || window.webkitAudioContext)();
@@ -334,8 +350,10 @@ async function go(from, given) {
     if (!given) inp.value = '';   // only clear the box when its own text was sent
     history.push({ from, src: text, dst: res, at: Date.now() }); save('history', history);
     if (!isAr) speakAr(res); else speakRn(res);   // auto: maid hears Arabic, she hears Kirundi
-    // back-translation: how the other side will understand it
-    try { back.textContent = (isAr ? '↩︎ يعني: ' : '↩︎ ') + await translate(res, to, from); } catch (e) {}
+    busy = false; $('goAr').disabled = $('goRn').disabled = false;
+    // back-translation (how the other side will understand it) runs after, without blocking the next tap
+    translate(res, to, from).then(b => { back.textContent = (isAr ? '↩︎ يعني: ' : '↩︎ ') + b; }).catch(() => {});
+    return;
   } catch (e) {
     const httpErr = /^\d+$/.test(String(e.message));   // the translation service answered with an error
     own.textContent = httpErr
@@ -362,9 +380,33 @@ async function listen(lang, cb) {
 }
 
 // ---------- panels ----------
+// interface language: Arabic for the family, Kirundi for the maid (set on the family screen or in ⚙️ 🌐)
+const UI = {
+  ar: { phrases:'⭐ جمل', tasks:'✅ المهام', pics:'🧹 أعمال', quick:'💬 ردود', family:'👨‍👩‍👧 العائلة', history:'🕘 السجل',
+        tPhr:'⭐ جمل جاهزة', tTasks:'✅ المهام · Ibikorwa', tPics:'🧹 أعمال · Imirimo', tQuick:'💬 ردود · Ibisubizo', tHist:'🕘 السجل', tSet:'⚙️ إعدادات',
+        tabs:{ color:'🎨 ألوان', text:'🔤 الخط', night:'🌙 ليلي', update:'🔄 تحديث', lang:'🌐 اللغة' }, dir:'rtl' },
+  rn: { phrases:'⭐ Amajambo', tasks:'✅ Ibikorwa', pics:'🧹 Imirimo', quick:'💬 Ibisubizo', family:'👨‍👩‍👧 Umuryango', history:'🕘 Amateka',
+        tPhr:'⭐ Amajambo ategekanijwe', tTasks:'✅ Ibikorwa · المهام', tPics:'🧹 Imirimo · أعمال', tQuick:'💬 Ibisubizo · ردود', tHist:'🕘 Amateka', tSet:'⚙️ Igenamiterere',
+        tabs:{ color:'🎨 Amabara', text:'🔤 Inyandiko', night:'🌙 Ijoro', update:'🔄 Guhindura', lang:'🌐 Ururimi' }, dir:'ltr' },
+  en: { phrases:'⭐ Phrases', tasks:'✅ Tasks', pics:'🧹 Chores', quick:'💬 Replies', family:'👨‍👩‍👧 Family', history:'🕘 History',
+        tPhr:'⭐ Ready phrases', tTasks:'✅ Tasks · Ibikorwa', tPics:'🧹 Chores · Imirimo', tQuick:'💬 Replies · Ibisubizo', tHist:'🕘 History', tSet:'⚙️ Settings',
+        tabs:{ color:'🎨 Colours', text:'🔤 Text', night:'🌙 Night', update:'🔄 Update', lang:'🌐 Language' }, dir:'ltr' }
+};
+const uiLang = () => load('lang', 'ar');
+const U = () => UI[uiLang()] || UI.ar;
+function setUiLang(l) {
+  save('lang', l);
+  if (typeof fam !== 'undefined' && fam) { fam.lang = l; save('fam', fam); }
+  applyUiLang();
+}
+function applyUiLang() {
+  const u = U();
+  document.querySelectorAll('.bar [data-open]').forEach(b => { b.textContent = u[b.dataset.open] || b.textContent; });
+  $('panel').dir = u.dir; document.querySelector('.bar').dir = u.dir;
+}
 let panel = '';
 function openPanel(name) { panel = name; $('panel').hidden = false; $('pFoot').dataset.p = ''; render(); fillMissing(); }
-function closePanel() { panel = ''; $('panel').hidden = true; }
+function closePanel() { panel = ''; $('panel').hidden = true; if (typeof famUi !== 'undefined') famUi = { thread: null, settings: false }; }
 // footer is built once per panel, so typed text survives a refresh of the list
 const setFoot = h => { const f = $('pFoot'); if (f.dataset.p !== panel) { f.innerHTML = h; f.dataset.p = panel; } };
 
@@ -372,13 +414,13 @@ function render() {
   const body = $('pBody'), foot = $('pFoot'), tools = $('pTools');
   tools.innerHTML = '';
   if (panel === 'phrases') {
-    $('pTitle').textContent = '⭐ جمل جاهزة';
+    $('pTitle').textContent = U().tPhr;
     body.innerHTML = phrases.map((p, i) => `<div class="item phr" data-say="${i}"><div class="t">
       <div>${esc(p.ar)}</div>${p.rn ? `<div class="arT" dir="ltr">${esc(p.rn)}</div>` : ''}</div>
       <button data-delphr="${i}" aria-label="حذف">🗑</button></div>`).join('') || '<div class="empty">ما في جمل</div>';
     setFoot('<input id="newPhr" placeholder="جملة جديدة…"><button data-act="addPhr">إضافة</button>');
   } else if (panel === 'tasks') {
-    $('pTitle').textContent = '✅ المهام · Ibikorwa';
+    $('pTitle').textContent = U().tTasks;
     tools.innerHTML = (tasks.length ? '<button data-act="shareText">📤 نص</button> <button data-act="sharePdf">📄 PDF</button> ' : '')
       + (tasks.some(t => t.done && !t.daily) ? '<button data-act="clearDone">مسح المنجز</button>' : '');
     body.innerHTML = tasks.map((t, i) => `<div class="item${t.done ? ' done' : ''}">
@@ -387,16 +429,23 @@ function render() {
       <button data-deltask="${i}" aria-label="حذف">🗑</button></div>`).join('') || '<div class="empty">ما في مهام · Nta bikorwa</div>';
     setFoot('<label class="dl"><input type="checkbox" id="newDaily"> كل يوم</label><input id="newTask" placeholder="مهمة جديدة…"><button data-act="addTask">إضافة</button>');
   } else if (panel === 'pics') {
-    $('pTitle').textContent = '🧹 أعمال · Imirimo';
+    $('pTitle').textContent = U().tPics;
+    // for the maid the Kirundi is the big text and the Arabic the small one
+    const rnFirst = uiLang() === 'rn';
+    const two = (ar, rn) => rnFirst ? `<b dir="ltr">${esc(rn)}</b><small class="rnS" dir="rtl">${esc(ar)}</small>`
+                                    : `<b>${esc(ar)}</b><small class="rnS" dir="ltr">${esc(rn)}</small>`;
     body.innerHTML = '<div class="grid">' + PICS.map((p, i) =>
-      `<button class="tile pic" data-pic="${i}"><span class="ic">${ICONS[i]}</span><b>${esc(p[1])}</b><small class="rnS" dir="ltr">${esc(p[2])}</small></button>`).join('') + '</div>';
+      `<button class="tile pic" data-pic="${i}"><span class="ic">${ICONS[i]}</span>${two(p[1], p[2])}</button>`).join('') + '</div>';
   } else if (panel === 'quick') {
-    $('pTitle').textContent = '💬 ردود · Ibisubizo';
+    $('pTitle').textContent = U().tQuick;
+    const rnFirst = uiLang() === 'rn';
+    const two = (ar, rn) => rnFirst ? `<b dir="ltr">${esc(rn)}</b><small class="rnS" dir="rtl">${esc(ar)}</small>`
+                                    : `<b>${esc(ar)}</b><small class="rnS" dir="ltr">${esc(rn)}</small>`;
     body.innerHTML = '<div class="grid">' + QR_AR.map((q, i) =>
-      `<button class="tile big" data-qr="${i}"><span>${q[0]}</span><b>${esc(q[1])}</b></button>`).join('') + '</div>';
+      `<button class="tile big" data-qr="${i}"><span>${q[0]}</span>${two(q[1], q[2])}</button>`).join('') + '</div>';
   } else if (panel === 'settings') {
-    $('pTitle').textContent = '⚙️ إعدادات';
-    const tabs = [['color', '🎨 ألوان'], ['text', '🔤 الخط'], ['night', '🌙 ليلي'], ['update', '🔄 تحديث']];
+    $('pTitle').textContent = U().tSet;
+    const tabs = ['color', 'text', 'night', 'update', 'lang'].map(k => [k, U().tabs[k]]);
     const cur = load('pal', 'soft'), fs = load('fs', 'm'), night = document.body.classList.contains('night');
     let html = '<div class="tabs">' + tabs.map(([k, l]) => `<button data-stab="${k}" class="${setTab === k ? 'on' : ''}">${l}</button>`).join('') + '</div>';
     if (setTab === 'color') {
@@ -404,6 +453,8 @@ function render() {
     } else if (setTab === 'text') {
       html += `<div class="set"><span>حجم الخط</span></div>` + [['s', 'صغير'], ['m', 'وسط'], ['l', 'كبير'], ['xl', 'كبير جداً']]
         .map(([k, l]) => `<button class="set ${fs === k ? 'on' : ''}" data-fs="${k}"><span>${l}</span><span>${fs === k ? '✓' : ''}</span></button>`).join('');
+    } else if (setTab === 'lang') {
+      html += ['ar', 'rn', 'en'].map(l => `<button class="set ${uiLang() === l ? 'on' : ''}" data-ulang="${l}"><span>${LANG_NAMES[l]}</span><span>${uiLang() === l ? '✓' : ''}</span></button>`).join('');
     } else if (setTab === 'night') {
       html += `<button class="set" data-set="night"><span>🌙 الوضع الليلي</span><span>${night ? 'مفعّل ✓' : 'عادي'}</span></button>`;
     } else {
@@ -415,7 +466,7 @@ function render() {
   } else if (panel === 'fam') {
     renderFam();
   } else if (panel === 'history') {
-    $('pTitle').textContent = '🕘 السجل';
+    $('pTitle').textContent = U().tHist;
     tools.innerHTML = history.length ? '<button data-act="clearHist">مسح السجل</button>' : '';
     body.innerHTML = history.slice().reverse().map(h => {
       const d = new Date(h.at);
@@ -455,11 +506,12 @@ async function sayPhrase(i) {
 }
 
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask],[data-pic],[data-qr],[data-chip],[data-set],[data-fs],[data-stab],[data-pal],[data-slang]');
+  const b = e.target.closest('[data-open],[data-act],[data-say],[data-delphr],[data-tick],[data-deltask],[data-pic],[data-qr],[data-chip],[data-set],[data-fs],[data-stab],[data-pal],[data-slang],[data-ulang]');
   if (!b) return;
   const d = b.dataset;
   if (d.open) return openPanel(d.open);
   if (d.stab) { setTab = d.stab; return render(); }
+  if (d.ulang) { setUiLang(d.ulang); return render(); }
   if (d.slang) { setupLang = d.slang; return render(); }
   if (d.pal) { applyPalette(d.pal); return render(); }
   if (d.act === 'checkUpd') return checkUpd();
@@ -668,7 +720,7 @@ let famMsgs = load('famMsgs', []);      // [{id, f, t, x, r, at, mine}]
 let famRead = load('famRead', {});      // thread -> last read time
 let famUi = { thread: null, settings: false };
 let famES = null, ringTimer = null, ringVib = null, ringCtx = null;
-const famT = () => FT[(fam && fam.lang) || 'ar'];
+const famT = () => FT[(fam && fam.lang) || uiLang()] || FT.ar;
 const famName = r => famT().roles[r] || r;
 const ROLES = ['mom','dad','k1','k2','k3','maid'];
 const ROLE_ICO = { mom:'👩', dad:'👨', k1:'🧒', k2:'🧒', k3:'🧒', maid:'🧹' };
@@ -701,15 +753,19 @@ async function famSend(to, text, ring) {
 function famConnect() {
   if (!fam || !fam.me || famES) return;
   try {
-    famES = new EventSource('https://ntfy.sh/mani-fam-' + fam.code + '/sse?since=' + Math.floor(Date.now() / 1000));
+    // messages sent while the app was closed are fetched too (ntfy keeps them for about 12 hours)
+    const since = load('famSince', 0) || Math.floor(Date.now() / 1000);
+    famES = new EventSource('https://ntfy.sh/mani-fam-' + fam.code + '/sse?since=' + since);
     famES.onmessage = e => {
       let ev; try { ev = JSON.parse(e.data); } catch (_) { return; }
       if (ev.event !== 'message' || famMsgs.some(m => m.id === ev.id)) return;
       let m; try { m = JSON.parse(ev.message); } catch (_) { return; }
       if (!m || m.f === fam.me || (m.t !== 'all' && m.t !== fam.me)) return;
-      famMsgs.push({ id: ev.id, f: m.f, t: m.t, x: m.x, r: !!m.r, at: Date.now(), mine: false });
-      famSave();
-      if (m.r) ringAlert(m); else if (!$('panel').hidden && panel === 'fam') renderFam();
+      const at = ev.time ? ev.time * 1000 : Date.now();
+      famMsgs.push({ id: ev.id, f: m.f, t: m.t, x: m.x, r: !!m.r, at, mine: false });
+      famSave(); save('famSince', Math.floor(at / 1000) + 1);
+      const fresh = Date.now() - at < 2 * 60 * 1000;   // an old ring (app was closed) is shown as a message, not rung
+      if (m.r && fresh) ringAlert(m); else if (!$('panel').hidden && panel === 'fam') renderFam();
     };
   } catch (e) {}
 }
@@ -759,7 +815,7 @@ document.addEventListener('click', e => {
 
 function renderFam() {
   const body = $('pBody'), foot = $('pFoot'), tools = $('pTools');
-  foot.innerHTML = ''; foot.dataset.p = ''; tools.innerHTML = '';
+  tools.innerHTML = '';   // the footer is kept by famChat (so a message arriving does not wipe what is being typed)
   if (!fam || !fam.me) return famSetup(body);
   if (famUi.settings) return famSettings(body, foot);
   if (famUi.thread === null) return famList(body, foot, tools);
@@ -788,11 +844,12 @@ function famSetup(body) {
     const role = body.dataset.role, c = $('famCode').value.trim();
     if (!role) { alert(T.roleTitle); return; }
     if (c.length < 12) { alert(T.codeShort); return; }
-    fam = { me: role, code: c, lang };
+    fam = { me: role, code: c, lang }; setUiLang(lang);
     famSave(); famConnect(); render();
   };
 }
 function famList(body, foot, tools) {
+  foot.innerHTML = ''; foot.dataset.p = '';
   $('pTitle').textContent = famT().chats;
   tools.innerHTML = `<button data-fam="settings">${famT().settings}</button>`;
   body.innerHTML = '<div class="fList">' + famThreads().map(th => {
@@ -814,12 +871,15 @@ function famChat(body, foot, tools) {
     return `<div class="bub ${m.mine ? 'me' : ''} ${m.r ? 'ring' : ''}">${who}${m.r ? '🔔 ' : ''}${esc(m.x)}<small>${when}${m.mine ? ' ✓' : ''}</small></div>`;
   }).join('') : `<div class="empty">${esc(famT().empty)}</div>`) + '</div>';
   setTimeout(() => body.scrollTop = body.scrollHeight, 0);
+  if (foot.dataset.p !== 'chat-' + th.id) {
   foot.dataset.p = 'chat-' + th.id;
   foot.innerHTML = `<div style="width:100%"><div class="fQuick">${famT().quick.map((q, i) => `<button data-fq="${i}">${esc(q)}</button>`).join('')}</div>
     <div class="fIn"><button class="rb" data-fam="ring" aria-label="ring">🔔</button><input id="famTxt" placeholder="${esc(famT().writeHere)}"><button data-fam="send" aria-label="send">➜</button></div></div>`;
+  }
   famRead[th.id] = Date.now(); save('famRead', famRead);
 }
 function famSettings(body, foot) {
+  foot.innerHTML = ''; foot.dataset.p = '';
   $('pTitle').textContent = famT().settingsTitle;
   const T = famT();
   body.innerHTML = `<div class="fSet">
@@ -839,7 +899,7 @@ document.addEventListener('click', e => {
     const fq = e.target.closest('[data-fq]');
     if (fq) return famSendTo(famT().quick[+fq.dataset.fq]);
     const fl = e.target.closest('[data-flang]');
-    if (fl) { fam.lang = fl.dataset.flang; famSave(); return render(); }
+    if (fl) { setUiLang(fl.dataset.flang); famSave(); return render(); }
     const fa = e.target.closest('[data-fam]');
     if (!fa) return;
     const a = fa.dataset.fam;
@@ -866,9 +926,14 @@ async function famRing() {
   renderFam();
 }
 famConnect();
+applyUiLang();
 
 // ---------- hardware Back button: close the open panel first ----------
-if (P.App) P.App.addListener('backButton', () => { if (panel) closePanel(); else P.App.exitApp(); });
+if (P.App) P.App.addListener('backButton', () => {
+  if (!$('ringOv').hidden) return;                                    // the ring must be answered with its buttons
+  if (panel === 'fam' && (famUi.thread !== null || famUi.settings)) { famUi = { thread: null, settings: false }; return render(); }
+  if (panel) closePanel(); else P.App.exitApp();
+});
 
 // ---------- updates ----------
 const APK_URL = 'https://github.com/DrOmaia/Mani/releases/latest/download/Mani.apk';
