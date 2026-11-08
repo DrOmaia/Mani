@@ -742,7 +742,7 @@ function famUnread(th) {
 }
 
 async function famSend(to, text, ring) {
-  const body = JSON.stringify({ f: fam.me, t: to, x: text, r: !!ring });
+  const body = JSON.stringify({ f: fam.me, t: to, x: text, r: !!ring, l: fam.lang });   // l = sender's language
   const headers = ring ? { 'X-Priority': '5', 'X-Tags': 'bell' } : {};
   const r = await fetch('https://ntfy.sh/mani-fam-' + fam.code, { method: 'POST', body, headers });
   if (!r.ok) throw new Error(r.status);
@@ -762,10 +762,18 @@ function famConnect() {
       let m; try { m = JSON.parse(ev.message); } catch (_) { return; }
       if (!m || m.f === fam.me || (m.t !== 'all' && m.t !== fam.me)) return;
       const at = ev.time ? ev.time * 1000 : Date.now();
-      famMsgs.push({ id: ev.id, f: m.f, t: m.t, x: m.x, r: !!m.r, at, mine: false });
+      const msg = { id: ev.id, f: m.f, t: m.t, x: m.x, r: !!m.r, at, mine: false, l: m.l || '' };
+      famMsgs.push(msg);
       famSave(); save('famSince', Math.floor(at / 1000) + 1);
       const fresh = Date.now() - at < 2 * 60 * 1000;   // an old ring (app was closed) is shown as a message, not rung
       if (m.r && fresh) ringAlert(m); else if (!$('panel').hidden && panel === 'fam') renderFam();
+      // the text reaches each person in their own language (sender's language -> mine)
+      if (!m.r && msg.l && msg.l !== fam.lang) {
+        translate(m.x, msg.l, fam.lang).then(tx => {
+          msg.tx = tx; famSave();
+          if (!$('panel').hidden && panel === 'fam') renderFam();
+        }).catch(() => {});
+      }
     };
   } catch (e) {}
 }
@@ -868,7 +876,9 @@ function famChat(body, foot, tools) {
   body.innerHTML = '<div class="fChat">' + (ms.length ? ms.map(m => {
     const d = new Date(m.at), when = d.toLocaleTimeString(fam.lang === 'ar' ? 'ar' : 'en', { hour: '2-digit', minute: '2-digit' });
     const who = m.mine ? '' : `<b style="font-size:14px;color:var(--mut)">${esc(famName(m.f))}</b><br>`;
-    return `<div class="bub ${m.mine ? 'me' : ''} ${m.r ? 'ring' : ''}">${who}${m.r ? '🔔 ' : ''}${esc(m.x)}<small>${when}${m.mine ? ' ✓' : ''}</small></div>`;
+    const shown = m.tx || m.x;
+    const orig = m.tx && m.tx !== m.x ? `<div style="font-size:13px;color:var(--mut);margin-top:3px" dir="auto">${esc(m.x)}</div>` : '';
+    return `<div class="bub ${m.mine ? 'me' : ''} ${m.r ? 'ring' : ''}">${who}${m.r ? '🔔 ' : ''}${esc(shown)}${orig}<small>${when}${m.mine ? ' ✓' : ''}</small></div>`;
   }).join('') : `<div class="empty">${esc(famT().empty)}</div>`) + '</div>';
   setTimeout(() => body.scrollTop = body.scrollHeight, 0);
   if (foot.dataset.p !== 'chat-' + th.id) {
