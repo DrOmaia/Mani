@@ -103,6 +103,23 @@ jobs:
           # allow the app to open the installer for its own update
           sed -i 's|<uses-permission android:name="android.permission.INTERNET" />|&\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />|' android/app/src/main/AndroidManifest.xml
           grep -q REQUEST_INSTALL_PACKAGES android/app/src/main/AndroidManifest.xml
+          # open the app from a mani://join/CODE link (invite): add the link to the launcher activity
+          python3 - <<'PY'
+          import re
+          f = "android/app/src/main/AndroidManifest.xml"
+          x = open(f).read()
+          filt = ('<intent-filter>'
+                  '<action android:name="android.intent.action.VIEW"/>'
+                  '<category android:name="android.intent.category.DEFAULT"/>'
+                  '<category android:name="android.intent.category.BROWSABLE"/>'
+                  '<data android:scheme="mani" android:host="join"/>'
+                  '</intent-filter>')
+          i = x.index('android:name=".MainActivity"')
+          j = x.index('</activity>', i)
+          x = x[:j] + filt + x[j:]
+          open(f, "w").write(x)
+          print("join link added")
+          PY
           npx cap sync android
           cd android && ./gradlew assembleRelease --no-daemon
       # Signed with release.keystore (kept in the repository: never change it, or installed apps stop updating)

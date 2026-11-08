@@ -8,7 +8,7 @@
   :root { --bg:#f7f4ee; --card:#fffdf9; --ink:#2b2a27; --mut:#6f6a62; --ar:#4f7f76; --rn:#a86a3c; --line:#e4ddd0; --btn:#ece6da; }
   * { box-sizing:border-box; }
   /* keep everything clear of the phone's status bar (top) and navigation bar (bottom) */
-  :root { --sat: max(env(safe-area-inset-top, 0px), 28px); --sab: max(env(safe-area-inset-bottom, 0px), 24px);
+  :root { --sat: max(env(safe-area-inset-top, 0px), 36px); --sab: max(env(safe-area-inset-bottom, 0px), 24px);
     --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px); }
   html { margin:0; height:100%; background:var(--bg); }
   body { margin:0; height:100%; background:var(--bg); color:var(--ink);
@@ -16,7 +16,7 @@
     font-family:system-ui,"Noto Sans Arabic",sans-serif; display:flex; flex-direction:column; }
   [hidden] { display:none !important; }
   .half { flex:1; display:flex; flex-direction:column; gap:8px; padding:10px 16px; min-height:0; }
-  .rn { transform:rotate(180deg); border-bottom:2px dashed var(--line); }
+  .rn { transform:rotate(180deg); border-bottom:2px dashed var(--line); padding-bottom:18px; }   /* rotated: this padding is the space at the top, under the status bar */
   body.flat .rn { transform:none; }
   .lbl { font-size:14px; font-weight:700; }
   .ar .lbl { color:var(--ar); } .rn .lbl { color:var(--rn); }
@@ -700,19 +700,19 @@ const FT = {
     start:'ابدئي', language:'اللغة', copyCode:'انسخي الكود', newCode:'كود جديد', testRing:'جرّبي الرنين', changeWho:'تغيير الاسم',
     empty:'ما في رسائل بعد', ringSent:'تم إرسال التنبيه', sendFail:'ما انبعتت، تأكدي من الإنترنت', copied:'تم النسخ',
     ringFrom:'يرن عليكِ', quick:['جاية','بعد شوي','ما بقدر','أحتاج مساعدة'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
-    roleTitle:'اختاري اسمك', codeShort:'الكود لازم يكون 12 حرف على الأقل، حتى يكون آمن.', settingsTitle:'الإعدادات', ringBack:['جاية','بعد شوي','ما بقدر'], ringOk:'وصلني' },
+    invite:'📨 دعوة للعائلة', fromInvite:'الكود جاي من الدعوة، ما تحتاج تكتبيه. اختاري اسمك.', roleTitle:'اختاري اسمك', codeShort:'الكود لازم يكون 12 حرف على الأقل، حتى يكون آمن.', settingsTitle:'الإعدادات', ringBack:['جاية','بعد شوي','ما بقدر'], ringOk:'وصلني' },
   rn: { family:'Umuryango', chats:'Ibiganiro', back:'‹ Subira inyuma', settings:'⚙️', send:'Ohereza', ring:'🔔 Hamagara', writeHere:'Andika ubutumwa…',
     welcome:'Murakaza neza', whoAreYou:'Ni nde?', code:"Kode y'umuryango", codeHint:"Kode imwe ku bantu bose b'umuryango.",
     start:'Tangira', language:'Ururimi', copyCode:'Koporora kode', newCode:'Kode nshya', testRing:'Gerageza ihamagara', changeWho:'Hindura izina',
     empty:"Nta butumwa", ringSent:'Ihamagara ryoherejwe', sendFail:"Ntibyoherejwe, reba interineti", copied:'Byakoporowe',
     ringFrom:'Akurahamagaye', quick:['Ndaje','Umwanya muto','Sinshoboye','Ndakeneye ubufasha'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
-    roleTitle:'Hitamo izina ryawe', codeShort:'Kode igomba kuba nibura inyuguti 12.', settingsTitle:'Igenamiterere', ringBack:['Ndaje','Umwanya muto','Sinshoboye'], ringOk:'Narabyumvise' },
+    invite:'📨 Gutumira umuryango', fromInvite:'Kode iraje mu gutumira, ntugomba kuyandika. Hitamo izina ryawe.', roleTitle:'Hitamo izina ryawe', codeShort:'Kode igomba kuba nibura inyuguti 12.', settingsTitle:'Igenamiterere', ringBack:['Ndaje','Umwanya muto','Sinshoboye'], ringOk:'Narabyumvise' },
   en: { family:'Family', chats:'Chats', back:'‹ Back', settings:'⚙️', send:'Send', ring:'🔔 Call', writeHere:'Type a message…',
     welcome:'Welcome', whoAreYou:'Who are you?', code:'Family code', codeHint:'The same code on every family phone. If you are first, keep it and share it.',
     start:'Start', language:'Language', copyCode:'Copy code', newCode:'New code', testRing:'Test the ring', changeWho:'Change name',
     empty:'No messages yet', ringSent:'Ring sent', sendFail:'Not sent, check the internet', copied:'Copied',
     ringFrom:'is calling you', quick:['Coming','In a moment','Cannot','I need help'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
-    roleTitle:'Choose your name', codeShort:'The code must be at least 12 characters, to be safe.', settingsTitle:'Settings', ringBack:['Coming','In a moment','Cannot'], ringOk:'Got it' }
+    invite:'📨 Invite family', fromInvite:'The code came with the invite, no need to type it. Choose your name.', roleTitle:'Choose your name', codeShort:'The code must be at least 12 characters, to be safe.', settingsTitle:'Settings', ringBack:['Coming','In a moment','Cannot'], ringOk:'Got it' }
 };
 const LANG_NAMES = { ar:'العربية', rn:'Ikirundi', en:'English' };
 let fam = load('fam', null);            // {me, code, lang}
@@ -830,18 +830,41 @@ function renderFam() {
   return famChat(body, foot, tools);
 }
 let setupLang = 'ar';
+// an invite link (the join page) carries the code; the app opens with it filled in
+const JOIN_PAGE = 'https://dromaia.github.io/mani/join/';
+let pendingCode = null;
+async function famInvite() {
+  const text = 'انضمّي لعائلتنا على تطبيق Mani:\n' + JOIN_PAGE + '?c=' + encodeURIComponent(fam.code);
+  try {
+    if (P.Share) return await P.Share.share({ text });
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  } catch (e) {}
+}
+// the app is opened by a mani://join/CODE link (from the join page)
+function takeInviteCode(url) {
+  const m = /join\/([A-Za-z0-9]{12,})/.exec(url) || /[?&]c=([A-Za-z0-9]{12,})/.exec(url);
+  if (!m) return;
+  const code = m[1];
+  if (fam && fam.me && fam.code === code) return;
+  if (fam && fam.me && !confirm('تبين تنضمّي لعائلة ثانية؟ الكود الحالي بيتغيّر.')) return;
+  pendingCode = code; fam = null; famES && famES.close(); famES = null;
+  famUi = { thread: null, settings: false };
+  openPanel('fam');
+}
+if (P.App) P.App.addListener('appUrlOpen', ev => takeInviteCode(ev.url || ''));
 function famSetup(body) {
   const lang = (fam && fam.lang) || setupLang;
   const T = FT[lang];
   $('pTitle').textContent = '👨‍👩‍👧 ' + T.family;
-  const code = (fam && fam.code) || randCode();
+  const code = (fam && fam.code) || pendingCode || randCode();
   body.innerHTML = `<div class="fSet">
     <div class="tabs">${['ar','rn','en'].map(l => `<button data-slang="${l}" class="${lang === l ? 'on' : ''}">${LANG_NAMES[l]}</button>`).join('')}</div>
     <div><b>${esc(T.welcome)}</b></div>
     <div>${esc(T.roleTitle)}</div>
     <div class="fRoles">${ROLES.map(r => `<button data-role="${r}">${esc(T.roles[r])}</button>`).join('')}</div>
     <div>${esc(T.code)}</div>
-    <input id="famCode" value="${esc(code)}" dir="ltr" autocomplete="off">
+    <input id="famCode" value="${esc(code)}" dir="ltr" autocomplete="off" ${pendingCode ? 'readonly' : ''}>
+    ${pendingCode ? `<div style="color:var(--ar);font-size:14px">${esc(T.fromInvite)}</div>` : ''}
     <div class="lbl2" style="color:var(--mut);font-size:14px">${esc(T.codeHint)}</div>
     <button id="famStart" class="bar" style="background:var(--ar);color:#fff;padding:12px;border-radius:12px;font-size:18px">${esc(T.start)}</button>
   </div>`;
@@ -852,7 +875,7 @@ function famSetup(body) {
     const role = body.dataset.role, c = $('famCode').value.trim();
     if (!role) { alert(T.roleTitle); return; }
     if (c.length < 12) { alert(T.codeShort); return; }
-    fam = { me: role, code: c, lang }; setUiLang(lang);
+    fam = { me: role, code: c, lang }; setUiLang(lang); pendingCode = null;
     famSave(); famConnect(); render();
   };
 }
@@ -895,6 +918,7 @@ function famSettings(body, foot) {
   body.innerHTML = `<div class="fSet">
     <div>${esc(T.language)}</div>
     ${['ar','rn','en'].map(l => `<button class="set ${fam.lang === l ? 'on' : ''}" data-flang="${l}"><span>${LANG_NAMES[l]}</span><span>${fam.lang === l ? '✓' : ''}</span></button>`).join('')}
+    <button class="set" data-fam="invite"><span>${esc(T.invite)}</span><span>📨</span></button>
     <button class="set" data-fam="copy"><span>${esc(T.copyCode)}</span><span dir="ltr">${esc(fam.code)}</span></button>
     <button class="set" data-fam="ringtest"><span>${esc(T.testRing)}</span><span>🔔</span></button>
     <button class="set" data-fam="who"><span>${esc(T.changeWho)}</span><span>${esc(T.roles[fam.me])}</span></button>
@@ -919,6 +943,7 @@ document.addEventListener('click', e => {
     if (a === 'ring') return famRing();
     if (a === 'ringtest') { startRing(); setTimeout(stopRing, 2500); return; }
     if (a === 'copy') { try { navigator.clipboard.writeText(fam.code); } catch (_) {} return; }
+    if (a === 'invite') return famInvite();
     if (a === 'who') { fam = null; famES && famES.close(); famES = null; famUi = { thread: null, settings: false }; famSave(); return render(); }
   }
 });
