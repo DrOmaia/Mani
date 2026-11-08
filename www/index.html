@@ -63,6 +63,8 @@
   .dl { display:flex; align-items:center; gap:4px; font-size:14px; color:var(--mut); white-space:nowrap; }
   .dl input { width:18px; height:18px; }
   .chips { display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
+  .ringBig { background:#c0392b !important; color:#fff; font-size:20px; padding:12px; width:100%; min-width:0; }
+  .ringBig[hidden] { display:none; }
   .chips button { background:var(--rn); font-size:calc(15px * var(--fs,1)); padding:8px 12px; white-space:nowrap; min-width:0; }
   .tile.big span { font-size:56px; }
   .tile.pic { min-height:130px; }
@@ -142,6 +144,7 @@
       <button id="micSw" class="alt" aria-label="Kiswahili">🎤</button>
       <button id="goRn" aria-label="Sobanura">➜</button>
     </div>
+    <button id="ringMaid" class="ringBig" hidden>🔔 Hamagara Mama</button>
     <div class="chips" id="chipsRn"></div>
   </section>
 
@@ -397,11 +400,21 @@ function setUiLang(l) {
   if (typeof fam !== 'undefined' && fam) { fam.lang = l; save('fam', fam); }
   applyUiLang();
 }
+const TXT = {
+  ar: { arLbl:'العربي', arIn:'اكتبي هون…', arOut:'الترجمة بتطلع هون', ringMaid:'' },
+  rn: { arLbl:'Icyarabu', arIn:'Andika mu cyarabu…', arOut:'Ubusobanuro buzoboneka hano', ringMaid:'🔔 Hamagara Mama' }
+};
 function applyUiLang() {
-  const u = U();
+  const u = U(), t = TXT[uiLang()] || TXT.ar;
+  document.querySelector('.half.ar .lbl').textContent = t.arLbl;
+  $('inAr').placeholder = t.arIn;
+  $('outAr').dataset.hint = t.arOut;
+  $('ringMaid').textContent = t.ringMaid || '🔔 ' + (fam && fam.me === 'maid' ? 'اتصلي بـ رند' : 'اتصلي بالخادمة');
+  $('ringMaid').hidden = !(fam && fam.me === 'maid');
   document.querySelectorAll('.bar [data-open]').forEach(b => { b.textContent = u[b.dataset.open] || b.textContent; });
   $('panel').dir = u.dir; document.querySelector('.bar').dir = u.dir;
 }
+$('ringMaid').onclick = () => { famSend('mom', '🔔', true).then(() => alert(famT().ringSent)).catch(() => alert(famT().sendFail)); };
 let panel = '';
 function openPanel(name) { panel = name; $('panel').hidden = false; $('pFoot').dataset.p = ''; render(); fillMissing(); }
 function closePanel() { panel = ''; $('panel').hidden = true; if (typeof famUi !== 'undefined') famUi = { thread: null, settings: false }; }
@@ -737,7 +750,12 @@ async function famSend(to, text, ring) {
   famSave();
 }
 
+function famNativeStart() {
+  try { if (P.FamilyRing && fam && fam.me) P.FamilyRing.start({ code: fam.code, me: fam.me }).catch(() => {}); } catch (e) {}
+}
+function famNativeStop() { try { if (P.FamilyRing) P.FamilyRing.stop().catch(() => {}); } catch (e) {} }
 function famConnect() {
+  famNativeStart();
   if (!fam || !fam.me || famES) return;
   try {
     // messages sent while the app was closed are fetched too (ntfy keeps them for about 12 hours)
@@ -931,7 +949,7 @@ document.addEventListener('click', e => {
     if (a === 'ringtest') { startRing(); setTimeout(stopRing, 2500); return; }
     if (a === 'copy') { try { navigator.clipboard.writeText(fam.code); } catch (_) {} return; }
     if (a === 'invite') return famInvite();
-    if (a === 'who') { fam = null; famES && famES.close(); famES = null; famUi = { thread: null, settings: false }; famSave(); return render(); }
+    if (a === 'who') { famNativeStop(); fam = null; famES && famES.close(); famES = null; famUi = { thread: null, settings: false }; famSave(); return render(); }
   }
 });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'famTxt') famSendTo(e.target.value.trim()); });

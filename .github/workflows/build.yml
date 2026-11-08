@@ -120,6 +120,28 @@ jobs:
           open(f, "w").write(x)
           print("join link added")
           PY
+          # family ring when the app is closed: our native plugin and service (source in native/android)
+          PKG=android/app/src/main/java/io/github/dromaia/mani
+          cp native/android/*.java $PKG/
+          python3 - <<'PY'
+          import re
+          f = "android/app/src/main/java/io/github/dromaia/mani/MainActivity.java"
+          x = open(f).read()
+          x = re.sub(r"(extends\s+BridgeActivity\s*\{)", r"\1\n    { registerPlugin(FamilyRingPlugin.class); }", x, count=1)
+          open(f, "w").write(x)
+          m = "android/app/src/main/AndroidManifest.xml"
+          y = open(m).read()
+          perms = ('<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>'
+                   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>'
+                   '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>'
+                   '<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>'
+                   '<uses-permission android:name="android.permission.VIBRATE"/>')
+          y = y.replace("<application", perms + "<application", 1)
+          svc = '<service android:name=".FamilyRingService" android:foregroundServiceType="dataSync" android:exported="false"/>'
+          y = y.replace("</application>", svc + "</application>", 1)
+          open(m, "w").write(y)
+          print("family ring wired")
+          PY
           npx cap sync android
           cd android && ./gradlew assembleRelease --no-daemon
       # Signed with release.keystore (kept in the repository: never change it, or installed apps stop updating)
