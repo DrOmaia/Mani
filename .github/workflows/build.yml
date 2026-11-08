@@ -120,9 +120,9 @@ jobs:
           open(f, "w").write(x)
           print("join link added")
           PY
-          # family ring when the app is closed: our native plugin and service (source in native/android)
+          # family ring when the app is closed: our native plugin and service (source in native/family)
           PKG=android/app/src/main/java/io/github/dromaia/mani
-          cp native/android/*.java $PKG/
+          cp native/family/*.java $PKG/
           python3 - <<'PY'
           import re
           f = "android/app/src/main/java/io/github/dromaia/mani/MainActivity.java"
