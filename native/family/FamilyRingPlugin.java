@@ -39,6 +39,9 @@ public class FamilyRingPlugin extends Plugin {
         if (Build.VERSION.SDK_INT >= 33 && getContext().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != 0) {
             getActivity().requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1001);
         }
+        // the home-screen ring button reads these
+        getContext().getSharedPreferences("mani_fam", android.content.Context.MODE_PRIVATE)
+            .edit().putString("code", code).putString("me", me).apply();
         Intent i = new Intent(getContext(), FamilyRingService.class);
         i.putExtra("code", code);
         i.putExtra("me", me);
