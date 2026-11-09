@@ -127,6 +127,12 @@
   .rgBtns { display:flex; flex-direction:column; gap:12px; }
   .rgBtns button { font-size:22px; padding:18px; border-radius:16px; color:#fff; background:var(--ar); min-height:64px; }
   .rgBtns button.sec { background:#3a4442; }
+  #maidHome { position:fixed; inset:0; background:var(--bg); z-index:4; display:flex; flex-direction:column; gap:14px; padding:var(--sat) 16px var(--sab); }
+  #maidHome[hidden] { display:none; }
+  .mhBtn { flex:1; font-size:34px; font-weight:700; color:#fff; background:var(--ar); border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:0; }
+  .mhBtn span { font-size:22px; }
+  .mhRing { background:#c0392b; }
+  .mhSmall { background:var(--btn); color:var(--ink); font-size:18px; padding:14px; border-radius:14px; }
   .empty { color:var(--mut); text-align:center; padding:30px 0; }
 </style>
 </head>
@@ -172,6 +178,12 @@
     <button id="flip" aria-label="قلب الشاشة">⇅</button>
   </div>
 
+  <!-- the maid's simple home: two big buttons; "ترجمة" opens the translator -->
+  <div id="maidHome" hidden dir="rtl">
+    <button class="mhBtn mhRing" id="mhRing">🔔<span>Hamagara Mama</span></button>
+    <button class="mhBtn" id="mhChores">🧹<span>Imirimo</span></button>
+    <button class="mhSmall" id="mhTr">⌨️ Ubusobanuro</button>
+  </div>
   <div id="ringOv" hidden dir="rtl">
     <div class="rgBox"><div class="rgBell">🔔</div><div id="rgFrom" class="rgFrom"></div>
       <div class="rgBtns" id="rgBtns"></div></div>
@@ -397,6 +409,7 @@ const uiLang = () => load('lang', 'ar');
 const U = () => UI[uiLang()] || UI.ar;
 function setUiLang(l) {
   save('lang', l);
+  if (typeof showMaidHome === 'function') showMaidHome();
   if (typeof fam !== 'undefined' && fam) { fam.lang = l; save('fam', fam); }
   applyUiLang();
 }
@@ -531,7 +544,14 @@ document.addEventListener('click', e => {
   if (d.fs) { ['s', 'm', 'l', 'xl'].forEach(k => document.body.classList.remove('fs-' + k)); document.body.classList.add('fs-' + d.fs); save('fs', d.fs); return render(); }
   if (d.qr != null) { const i = +d.qr; closePanel(); go('ar', QR_AR[i][1]); if (i === 6 && fam && fam.me) famSend('all', '🔔', true).catch(() => {}); return; }
   if (d.chip != null) return go('rn', CHIPS_RN[+d.chip][0]);
-  if (d.pic != null) { const ar = PICS[+d.pic][1]; closePanel(); return go('ar', ar); }
+  if (d.pic != null) {
+    if (fam && fam.me === 'maid') {
+      const rn = PICS[+d.pic][2];
+      closePanel();
+      return famSend('mom', rn, false).then(() => alert(famT().sent)).catch(() => alert(famT().sendFail));
+    }
+    const ar = PICS[+d.pic][1]; closePanel(); return go('ar', ar);
+  }
   if (d.delphr != null) { if (confirm('حذف الجملة؟')) { phrases.splice(+d.delphr, 1); save('phrases', phrases); render(); } return; }
   if (d.say != null) return sayPhrase(+d.say);
   if (d.tick != null) { tasks[+d.tick].done = !tasks[+d.tick].done; save('tasks', tasks); return render(); }
@@ -698,19 +718,19 @@ const FT = {
   ar: { family:'العائلة', chats:'المحادثات', back:'‹ رجوع', settings:'⚙️', send:'إرسال', ring:'🔔 تعالي', writeHere:'اكتبي رسالة…',
     welcome:'أهلاً بكِ', whoAreYou:'مين أنتِ؟', code:'كود العائلة', codeHint:'نفس الكود لكل أفراد العائلة. إذا أنتِ أول واحد، خلّيه كما هو وانسخيه لهم.',
     start:'ابدئي', language:'اللغة', copyCode:'انسخي الكود', newCode:'كود جديد', testRing:'جرّبي الرنين', changeWho:'تغيير الاسم',
-    empty:'ما في رسائل بعد', ringSent:'تم إرسال التنبيه', sendFail:'ما انبعتت، تأكدي من الإنترنت', copied:'تم النسخ',
+    empty:'ما في رسائل بعد', ringSent:'تم إرسال التنبيه', sent:'تم الإرسال ✓', sendFail:'ما انبعتت، تأكدي من الإنترنت', copied:'تم النسخ',
     ringFrom:'يرن عليكِ', quick:['جاية','بعد شوي','ما بقدر','أحتاج مساعدة'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
     invite:'📨 دعوة للعائلة', fromInvite:'الكود جاي من الدعوة، ما تحتاج تكتبيه. اختاري اسمك.', roleTitle:'اختاري اسمك', codeShort:'الكود لازم يكون 12 حرف على الأقل، حتى يكون آمن.', settingsTitle:'الإعدادات', ringBack:['جاية','بعد شوي','ما بقدر'], ringOk:'وصلني' },
   rn: { family:'Umuryango', chats:'Ibiganiro', back:'‹ Subira inyuma', settings:'⚙️', send:'Ohereza', ring:'🔔 Hamagara', writeHere:'Andika ubutumwa…',
     welcome:'Murakaza neza', whoAreYou:'Ni nde?', code:"Kode y'umuryango", codeHint:"Kode imwe ku bantu bose b'umuryango.",
     start:'Tangira', language:'Ururimi', copyCode:'Koporora kode', newCode:'Kode nshya', testRing:'Gerageza ihamagara', changeWho:'Hindura izina',
-    empty:"Nta butumwa", ringSent:'Ihamagara ryoherejwe', sendFail:"Ntibyoherejwe, reba interineti", copied:'Byakoporowe',
+    empty:"Nta butumwa", ringSent:'Ihamagara ryoherejwe', sent:'Byoherejwe ✓', sendFail:"Ntibyoherejwe, reba interineti", copied:'Byakoporowe',
     ringFrom:'Akurahamagaye', quick:['Ndaje','Umwanya muto','Sinshoboye','Ndakeneye ubufasha'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
     invite:'📨 Gutumira umuryango', fromInvite:'Kode iraje mu gutumira, ntugomba kuyandika. Hitamo izina ryawe.', roleTitle:'Hitamo izina ryawe', codeShort:'Kode igomba kuba nibura inyuguti 12.', settingsTitle:'Igenamiterere', ringBack:['Ndaje','Umwanya muto','Sinshoboye'], ringOk:'Narabyumvise' },
   en: { family:'Family', chats:'Chats', back:'‹ Back', settings:'⚙️', send:'Send', ring:'🔔 Call', writeHere:'Type a message…',
     welcome:'Welcome', whoAreYou:'Who are you?', code:'Family code', codeHint:'The same code on every family phone. If you are first, keep it and share it.',
     start:'Start', language:'Language', copyCode:'Copy code', newCode:'New code', testRing:'Test the ring', changeWho:'Change name',
-    empty:'No messages yet', ringSent:'Ring sent', sendFail:'Not sent, check the internet', copied:'Copied',
+    empty:'No messages yet', ringSent:'Ring sent', sent:'Sent ✓', sendFail:'Not sent, check the internet', copied:'Copied',
     ringFrom:'is calling you', quick:['Coming','In a moment','Cannot','I need help'], roles:{mom:'رند',dad:'أميه',k1:'حسان',k2:'سلمى',k3:'عبدالملك',maid:'الخادمة'},
     invite:'📨 Invite family', fromInvite:'The code came with the invite, no need to type it. Choose your name.', roleTitle:'Choose your name', codeShort:'The code must be at least 12 characters, to be safe.', settingsTitle:'Settings', ringBack:['Coming','In a moment','Cannot'], ringOk:'Got it' }
 };
@@ -967,6 +987,15 @@ async function famRing() {
 }
 famConnect();
 applyUiLang();
+// the maid's home: two big buttons; she can open the translator from it
+function showMaidHome() {
+  const on = !!(fam && fam.me === 'maid');
+  $('maidHome').hidden = !on;
+}
+$('mhRing').onclick = () => { famSend('mom', '🔔', true).then(() => alert(famT().ringSent)).catch(() => alert(famT().sendFail)); };
+$('mhChores').onclick = () => { panel = ''; openPanel('pics'); };
+$('mhTr').onclick = () => { $('maidHome').hidden = true; };
+showMaidHome();
 
 // ---------- hardware Back button: close the open panel first ----------
 if (P.App) P.App.addListener('backButton', () => {

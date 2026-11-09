@@ -29,3 +29,4 @@
 26. Removed the 📋 paste buttons (they could not read the phone's clipboard and only showed a message). Long-press paste into the box still translates by itself.
 27. Maid's screen in Kirundi (labels, hints, the translator's Arabic box). Big 🔔 button for the maid to ring Mom. Native background listener (Android): while the phone is on, Mani keeps listening for the family topic and shows a loud full-screen ring or a message notification when the app is closed. Written blind (not built or run on a phone yet): check the build log for "family ring wired" and test on a phone.
 28. Home-screen 🔔 widget (Android): one tap rings the family phone (Mom; on Mom's phone it rings the maid). Needs the app to have been opened once with the family set up.
+29. Simpler maid's screen: the maid opens on two big buttons, 🔔 Call Mama and 🧹 Chores (a tap on a chore sends it to Mama in Kirundi, she reads it in Arabic); ⌨️ opens the translator. Ring widget unchanged.
